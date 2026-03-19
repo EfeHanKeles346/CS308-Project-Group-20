@@ -13,7 +13,8 @@
   <!-- Cursor glow effect -->
   <div class="cursor-glow" id="cursorGlow"></div>
 
-  <!-- HEADER: Will be implemented -->
+  <!-- ==================== HEADER ==================== -->
+  <!-- Basic header - will be expanded with search, nav, actions -->
   <header class="header" id="header">
     <div class="container header-inner">
       <a href="#" class="logo">
@@ -22,50 +23,389 @@
     </div>
   </header>
 
-  <!-- HERO: Will be implemented -->
+  <!-- ==================== HERO ==================== -->
   <section class="hero">
-    <div class="container">
-      <h1>TechMind - Coming Soon</h1>
+    <div class="hero-bg">
+      <div class="hero-grid-pattern"></div>
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+      <div class="hero-orb hero-orb-3"></div>
+      <div class="hero-line hero-line-1"></div>
+      <div class="hero-line hero-line-2"></div>
+    </div>
+    <div class="container hero-content">
+      <div class="hero-main reveal">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          2026 New Season
+        </div>
+        <h1 class="hero-title">
+          The Future of
+          <span class="hero-title-gradient">Technology</span>
+          <br />Is Here.
+        </h1>
+        <p class="hero-desc">Discover thousands of premium tech products. Same-day shipping, hassle-free returns, and best price guarantee.</p>
+        <div class="hero-buttons">
+          <a href="#products" class="btn btn-primary">
+            <span>Explore</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+          <a href="#" class="btn btn-outline">
+            <i class="fas fa-play"></i>
+            <span>Deals</span>
+          </a>
+        </div>
+      </div>
+      <div class="hero-visual reveal">
+        <div class="hero-card-stack">
+          <div class="hero-product-card" id="heroProductCard">
+            <div class="hpc-glow"></div>
+            <div class="hpc-image">
+              <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&h=400&fit=crop&q=80" alt="Sony WH-1000XM5" id="heroProductImg" />
+            </div>
+            <div class="hpc-info">
+              <span class="hpc-brand" id="heroProductBrand">Sony</span>
+              <span class="hpc-name" id="heroProductName">WH-1000XM5</span>
+              <div class="hpc-price">
+                <span class="hpc-old" id="heroProductOld">$399</span>
+                <span class="hpc-new" id="heroProductNew">$299</span>
+              </div>
+            </div>
+          </div>
+          <!-- Orbiting info cards -->
+          <div class="hero-orbit" id="heroOrbit">
+            <div class="orbit-card orbit-card-1">
+              <i class="fas fa-truck-fast"></i>
+              <span>Same Day Shipping</span>
+            </div>
+            <div class="orbit-card orbit-card-2">
+              <i class="fas fa-shield-halved"></i>
+              <span>100% Secure</span>
+            </div>
+            <div class="orbit-card orbit-card-3">
+              <i class="fas fa-rotate-left"></i>
+              <span>14-Day Returns</span>
+            </div>
+            <div class="orbit-card orbit-card-4">
+              <i class="fas fa-star"></i>
+              <span>4.8 Rating</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- FEATURES: Will be implemented -->
+  <!-- ==================== FEATURES ==================== -->
   <section class="features">
     <div class="container">
+      <div class="features-grid reveal">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-truck-fast"></i></div>
+          <strong>Free Shipping</strong>
+          <span>On orders over $50</span>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-rotate-left"></i></div>
+          <strong>14-Day Returns</strong>
+          <span>Hassle-free return guarantee</span>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-shield-halved"></i></div>
+          <strong>Secure Payment</strong>
+          <span>256-bit SSL encryption</span>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-headset"></i></div>
+          <strong>24/7 Support</strong>
+          <span>We're always here for you</span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- CATEGORIES: Will be implemented -->
+  <!-- ==================== CATEGORIES ==================== -->
   <section class="categories section">
     <div class="container">
+      <div class="section-header reveal">
+        <div>
+          <h2 class="section-title">Categories</h2>
+          <p class="section-sub">Everything you need, just a click away</p>
+        </div>
+      </div>
+    </div>
+    <div class="category-scroll reveal">
+      <div class="category-track">
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-mobile-alt"></i></div>
+          <span>Phones</span>
+          <small>2.4K+ products</small>
+        </a>
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-laptop"></i></div>
+          <span>Laptops</span>
+          <small>1.8K+ products</small>
+        </a>
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-tv"></i></div>
+          <span>Televisions</span>
+          <small>950+ products</small>
+        </a>
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-headphones"></i></div>
+          <span>Headphones</span>
+          <small>3.2K+ products</small>
+        </a>
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-gamepad"></i></div>
+          <span>Gaming</span>
+          <small>4.1K+ products</small>
+        </a>
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-camera"></i></div>
+          <span>Cameras</span>
+          <small>780+ products</small>
+        </a>
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-tablet-alt"></i></div>
+          <span>Tablets</span>
+          <small>640+ products</small>
+        </a>
+        <a href="#" class="category-card">
+          <div class="category-icon"><i class="fas fa-clock"></i></div>
+          <span>Smartwatches</span>
+          <small>520+ products</small>
+        </a>
+      </div>
     </div>
   </section>
 
-  <!-- PRODUCTS: Will be implemented -->
+  <!-- ==================== PRODUCTS ==================== -->
   <section class="products section" id="products">
     <div class="container">
+      <div class="section-header reveal">
+        <div>
+          <h2 class="section-title">Featured Products</h2>
+          <p class="section-sub">Most popular and best-selling products</p>
+        </div>
+        <div class="product-tabs">
+          <button class="tab-btn active">All</button>
+          <button class="tab-btn">Best Sellers</button>
+          <button class="tab-btn">New</button>
+          <button class="tab-btn">On Sale</button>
+        </div>
+      </div>
+      <div class="product-grid">
+        <div class="product-card reveal">
+          <div class="product-badge badge-sale">18%</div>
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600&h=600&fit=crop&q=80" alt="iPhone 16 Pro Max 256GB" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Apple</span>
+            <h3 class="product-name">iPhone 16 Pro Max 256GB</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+              <span>4.5 (324)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-old">$1,199</span>
+              <span class="price-current">$999</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card reveal">
+          <div class="product-badge badge-new">New</div>
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&h=600&fit=crop&q=80" alt="MacBook Pro 14 M4 Pro" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Apple</span>
+            <h3 class="product-name">MacBook Pro 14" M4 Pro</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+              <span>5.0 (156)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-current">$1,999</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card reveal">
+          <div class="product-badge badge-sale">25%</div>
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=600&h=600&fit=crop&q=80" alt="Sony WH-1000XM5 Wireless Headphones" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Sony</span>
+            <h3 class="product-name">WH-1000XM5 Wireless Headphones</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+              <span>5.0 (892)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-old">$399</span>
+              <span class="price-current">$299</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card reveal">
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=600&h=600&fit=crop&q=80" alt="Samsung 65 Neo QLED 4K Smart TV" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Samsung</span>
+            <h3 class="product-name">65" Neo QLED 4K Smart TV</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></div>
+              <span>4.0 (210)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-current">$1,299</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card reveal">
+          <div class="product-badge badge-sale">15%</div>
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=600&h=600&fit=crop&q=80" alt="PlayStation 5 Slim Digital Edition" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Sony</span>
+            <h3 class="product-name">PlayStation 5 Slim Digital Edition</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+              <span>4.5 (1.2K)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-old">$449</span>
+              <span class="price-current">$379</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card reveal">
+          <div class="product-badge badge-new">New</div>
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=600&h=600&fit=crop&q=80" alt="Apple Watch Ultra 2" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Apple</span>
+            <h3 class="product-name">Apple Watch Ultra 2</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+              <span>5.0 (467)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-current">$799</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card reveal">
+          <div class="product-badge badge-sale">30%</div>
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600&h=600&fit=crop&q=80" alt="Samsung Galaxy Tab S9 FE 128GB" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Samsung</span>
+            <h3 class="product-name">Galaxy Tab S9 FE 128GB</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></div>
+              <span>4.0 (98)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-old">$449</span>
+              <span class="price-current">$299</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+        <div class="product-card reveal">
+          <button class="wishlist-btn"><i class="far fa-heart"></i></button>
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600&h=600&fit=crop&q=80" alt="Canon EOS R6 Mark II Body" loading="lazy" />
+          </div>
+          <div class="product-info">
+            <span class="product-brand">Canon</span>
+            <h3 class="product-name">EOS R6 Mark II Body</h3>
+            <div class="product-rating">
+              <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+              <span>4.5 (73)</span>
+            </div>
+            <div class="product-price">
+              <span class="price-current">$2,499</span>
+            </div>
+            <button class="add-to-cart"><i class="fas fa-shopping-bag"></i> Add to Cart</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- BANNERS: Will be implemented -->
+  <!-- ==================== BANNERS ==================== -->
   <section class="banners section">
     <div class="container">
+      <div class="banner-grid reveal">
+        <div class="banner-card banner-cyber">
+          <div class="banner-content">
+            <span class="banner-tag"><i class="fas fa-clock"></i> Limited Time</span>
+            <h3>Gaming Week</h3>
+            <p>Up to 20% off all gaming products</p>
+            <a href="#" class="btn btn-primary btn-sm">Explore <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <div class="banner-deco"><i class="fas fa-gamepad"></i></div>
+        </div>
+        <div class="banner-card banner-neon">
+          <div class="banner-content">
+            <span class="banner-tag"><i class="fas fa-gift"></i> Special Offer</span>
+            <h3>Smart Home</h3>
+            <p>Extra 10% off smart home products at checkout</p>
+            <a href="#" class="btn btn-outline btn-sm">Shop Now <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <div class="banner-deco"><i class="fas fa-home"></i></div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- NEWSLETTER: Will be implemented -->
-  <section class="newsletter">
+  <!-- ==================== NEWSLETTER ==================== -->
+  <section class="newsletter reveal">
     <div class="container">
+      <div class="newsletter-card">
+        <div class="newsletter-text">
+          <h3>Be the first to know about deals</h3>
+          <p>Subscribe to our newsletter and never miss a deal.</p>
+        </div>
+        <form class="newsletter-form" onsubmit="return false;">
+          <input type="email" placeholder="Your email address" />
+          <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+      </div>
     </div>
   </section>
 
-  <!-- FOOTER: Will be implemented -->
+  <!-- ==================== FOOTER ==================== -->
+  <!-- Basic footer - will be expanded -->
   <footer class="footer">
     <div class="container">
+      <p>&copy; 2026 TechMind. All rights reserved.</p>
     </div>
   </footer>
 
-  <!-- AUTH MODAL: Will be implemented -->
+  <!-- ==================== AUTH MODAL ==================== -->
+  <!-- Will be implemented in feature/auth-system -->
   <div class="modal-overlay" id="authModal">
   </div>
 
