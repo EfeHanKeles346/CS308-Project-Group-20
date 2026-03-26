@@ -1,8 +1,27 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { loginUser, registerUser, fetchProducts, fetchProductById } from '../services/api';
 
-describe('API Service — loginUser', () => {
+describe('API Service - loginUser', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should return success with valid credentials', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({
+        uid: 'user-1',
+        email: 'test@example.com',
+        displayName: 'Test User',
+        idToken: 'token-1',
+        refreshToken: 'refresh-1',
+      }),
+    });
+
     const result = await loginUser('test@example.com', 'password123');
     expect(result.success).toBe(true);
     expect(result.user).toBeDefined();
@@ -22,8 +41,27 @@ describe('API Service — loginUser', () => {
   });
 });
 
-describe('API Service — registerUser', () => {
+describe('API Service - registerUser', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should register with valid data', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({
+        uid: 'user-2',
+        email: 'john@example.com',
+        displayName: 'John Doe',
+        idToken: 'token-2',
+        refreshToken: 'refresh-2',
+      }),
+    });
+
     const result = await registerUser({
       firstName: 'John', lastName: 'Doe',
       email: 'john@example.com', password: 'password123',
@@ -47,7 +85,7 @@ describe('API Service — registerUser', () => {
   });
 });
 
-describe('API Service — fetchProducts', () => {
+describe('API Service - fetchProducts', () => {
   it('should return products array', async () => {
     const result = await fetchProducts();
     expect(result.success).toBe(true);
@@ -56,7 +94,7 @@ describe('API Service — fetchProducts', () => {
   });
 });
 
-describe('API Service — fetchProductById', () => {
+describe('API Service - fetchProductById', () => {
   it('should find existing product', async () => {
     const result = await fetchProductById(1);
     expect(result.success).toBe(true);
