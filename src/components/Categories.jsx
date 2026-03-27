@@ -1,7 +1,7 @@
 import useReveal from '../hooks/useReveal';
 import categories from '../data/categories';
 
-export default function Categories() {
+export default function Categories({ selectedCategory, onCategorySelect }) {
   const headerRef = useReveal();
   const scrollRef = useReveal();
 
@@ -18,11 +18,16 @@ export default function Categories() {
       <div className="category-scroll reveal" ref={scrollRef}>
         <div className="category-track">
           {categories.map((cat) => (
-            <a href="#" className="category-card" key={cat.id}>
+            <button
+              key={cat.id}
+              className={`category-card${selectedCategory === cat.id ? ' active' : ''}`}
+              onClick={() => onCategorySelect(cat.id)}
+              aria-pressed={selectedCategory === cat.id}
+            >
               <div className="category-icon"><i className={`fas ${cat.icon}`} /></div>
               <span>{cat.name}</span>
               <small>{cat.count} products</small>
-            </a>
+            </button>
           ))}
         </div>
       </div>

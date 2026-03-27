@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { headerCategories } from '../data/categories';
 
-export default function Header({ onOpenModal, onSearch }) {
+export default function Header({ onOpenModal, onSearch, selectedCategory, onCategorySelect }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -35,6 +35,7 @@ export default function Header({ onOpenModal, onSearch }) {
     onSearch(value);
     // Navigate to home if not already there, so search results show
     if (window.location.pathname !== '/') navigate('/');
+    if (value) setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleSearchClear = () => {
@@ -69,7 +70,14 @@ export default function Header({ onOpenModal, onSearch }) {
         </div>
 
         <nav className="header-nav" aria-label="Main navigation">
-          <a href="#" className="nav-link">Deals</a>
+          <button
+            className={`nav-link${selectedCategory === 'deals' ? ' active' : ''}`}
+            onClick={() => {
+              onCategorySelect('deals');
+              if (window.location.pathname !== '/') navigate('/');
+              setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
+            }}
+          >Deals</button>
           <a href="#" className="nav-link">Stores</a>
           <a href="#" className="nav-link">Help</a>
         </nav>
@@ -102,13 +110,30 @@ export default function Header({ onOpenModal, onSearch }) {
         <div className="container">
           <div className="cat-nav-scroll" role="navigation" aria-label="Categories">
             {headerCategories.map((cat) => (
-              <a href="#" className="cat-link" key={cat.id}>
+              <button
+                key={cat.id}
+                className={`cat-link${selectedCategory === cat.id ? ' active' : ''}`}
+                onClick={() => {
+                  onCategorySelect(cat.id);
+                  if (window.location.pathname !== '/') navigate('/');
+                  setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
+                }}
+                aria-pressed={selectedCategory === cat.id}
+              >
                 <i className={`fas ${cat.icon}`} /> {cat.label}
-              </a>
+              </button>
             ))}
-            <a href="#" className="cat-link cat-link-accent">
+            <button
+              className={`cat-link cat-link-accent${selectedCategory === 'deals' ? ' active' : ''}`}
+              onClick={() => {
+                onCategorySelect('deals');
+                if (window.location.pathname !== '/') navigate('/');
+                setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
+              }}
+              aria-pressed={selectedCategory === 'deals'}
+            >
               <i className="fas fa-fire" /> Deals
-            </a>
+            </button>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@ const heroProducts = allProducts.slice(0, 5).map((p) => ({
   price: p.priceDisplay,
 }));
 
-export default function Hero() {
+export default function Hero({ onCategorySelect }) {
   const [current, setCurrent] = useState(0);
   const [switching, setSwitching] = useState(false);
   const mainRef = useReveal();
@@ -60,10 +60,13 @@ export default function Hero() {
               <span>Explore</span>
               <i className="fas fa-arrow-right" />
             </a>
-            <a href="#" className="btn btn-outline">
+            <button className="btn btn-outline" onClick={() => {
+              onCategorySelect('deals');
+              document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+            }}>
               <i className="fas fa-play" />
               <span>Deals</span>
-            </a>
+            </button>
           </div>
         </div>
         <div className="hero-visual reveal" ref={visualRef}>

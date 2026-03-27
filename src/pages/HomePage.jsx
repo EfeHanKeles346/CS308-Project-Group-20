@@ -5,14 +5,14 @@ import Products from '../components/Products';
 import Banners from '../components/Banners';
 import Newsletter from '../components/Newsletter';
 
-export default function HomePage({ searchQuery }) {
+export default function HomePage({ searchQuery, selectedCategory, onCategorySelect }) {
   return (
     <>
-      <Hero />
+      <Hero onCategorySelect={onCategorySelect} />
       <Features />
-      <Categories />
-      <Products searchQuery={searchQuery} />
-      <Banners />
+      <Categories selectedCategory={selectedCategory} onCategorySelect={onCategorySelect} />
+      <Products searchQuery={searchQuery} selectedCategory={selectedCategory} />
+      <Banners onCategorySelect={onCategorySelect} />
       <Newsletter />
     </>
   );

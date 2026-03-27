@@ -125,8 +125,10 @@ ul { list-style: none; }
 .nav-link {
   padding: 8px 14px; font-size: 14px; font-weight: 500; color: var(--text-secondary);
   border-radius: var(--radius-sm); transition: all var(--transition);
+  background: none; border: none; cursor: pointer; font-family: inherit;
 }
 .nav-link:hover { color: var(--cyan); background: var(--cyan-dim); }
+.nav-link.active { color: var(--cyan); background: var(--cyan-dim); }
 
 .header-actions { display: flex; gap: 4px; }
 .header-icon-btn {
@@ -156,8 +158,10 @@ ul { list-style: none; }
   font-size: 13px; font-weight: 500; color: var(--text-secondary);
   white-space: nowrap; transition: all var(--transition);
   border-bottom: 2px solid transparent; position: relative;
+  background: none; cursor: pointer; font-family: inherit; border-left: none; border-right: none; border-top: none; outline: none;
 }
 .cat-link:hover { color: var(--cyan); border-bottom-color: var(--cyan); }
+.cat-link.active { color: var(--cyan); border-bottom-color: var(--cyan); }
 .cat-link i { font-size: 14px; }
 .cat-link-accent { color: var(--orange) !important; }
 .cat-link-accent:hover { border-bottom-color: var(--orange) !important; }
@@ -369,7 +373,8 @@ ul { list-style: none; }
   scroll-snap-align: start; width: 155px; flex-shrink: 0; padding: 28px 20px;
   border-radius: var(--radius-xl); text-align: center; background: var(--bg-secondary);
   border: 1px solid var(--border); transition: all var(--transition);
-  position: relative; overflow: hidden;
+  position: relative; overflow: hidden; cursor: pointer; color: inherit;
+  font-family: inherit; text-decoration: none;
 }
 .category-card::before {
   content: ""; position: absolute; inset: 0; background: var(--gradient-primary);
@@ -377,6 +382,9 @@ ul { list-style: none; }
 }
 .category-card:hover::before { opacity: 0.08; }
 .category-card:hover { border-color: var(--border-active); transform: translateY(-6px); box-shadow: var(--shadow-glow); }
+.category-card.active::before { opacity: 0.12; }
+.category-card.active { border-color: var(--border-active); box-shadow: var(--shadow-glow); }
+.category-card.active .category-icon { transform: scale(1.15); }
 .category-icon { font-size: 32px; margin-bottom: 12px; color: var(--cyan); position: relative; z-index: 1; transition: all var(--transition); }
 .category-card:hover .category-icon { transform: scale(1.15); }
 .category-card span { display: block; font-size: 14px; font-weight: 700; position: relative; z-index: 1; }

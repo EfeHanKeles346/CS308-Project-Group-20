@@ -18,6 +18,7 @@ function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState('login');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const openModal = useCallback((tab = 'login') => {
     setModalTab(tab);
@@ -30,6 +31,11 @@ function AppContent() {
 
   const handleSearch = useCallback((query) => {
     setSearchQuery(query);
+    if (query) setSelectedCategory(null);
+  }, []);
+
+  const handleCategorySelect = useCallback((categoryId) => {
+    setSelectedCategory((prev) => (prev === categoryId ? null : categoryId));
   }, []);
 
   return (
@@ -37,10 +43,10 @@ function AppContent() {
       <ScrollToTop />
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <CursorGlow />
-      <Header onOpenModal={openModal} onSearch={handleSearch} />
+      <Header onOpenModal={openModal} onSearch={handleSearch} selectedCategory={selectedCategory} onCategorySelect={handleCategorySelect} />
       <main id="main-content">
         <Routes>
-          <Route path="/" element={<HomePage searchQuery={searchQuery} />} />
+          <Route path="/" element={<HomePage searchQuery={searchQuery} selectedCategory={selectedCategory} onCategorySelect={handleCategorySelect} />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<CartPage />} />
         </Routes>

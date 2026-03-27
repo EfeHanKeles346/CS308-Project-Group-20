@@ -20,7 +20,7 @@ function StarIcon({ value }) {
   return <i className="far fa-star" />;
 }
 
-export default function Products({ searchQuery = '' }) {
+export default function Products({ searchQuery = '', selectedCategory = null }) {
   const [activeTab, setActiveTab] = useState('All');
   const [sortBy, setSortBy] = useState('default');
   const [wishlisted, setWishlisted] = useState({});
@@ -31,6 +31,13 @@ export default function Products({ searchQuery = '' }) {
 
   const filteredProducts = useMemo(() => {
     let result = [...allProducts];
+
+    // Category filter
+    if (selectedCategory === 'deals') {
+      result = result.filter((p) => p.tags.includes('sale'));
+    } else if (selectedCategory) {
+      result = result.filter((p) => p.category === selectedCategory);
+    }
 
     // Tab filter
     if (activeTab === 'Best Sellers') {
@@ -65,7 +72,7 @@ export default function Products({ searchQuery = '' }) {
     }
 
     return result;
-  }, [activeTab, searchQuery, sortBy]);
+  }, [activeTab, searchQuery, sortBy, selectedCategory]);
 
   const toggleWishlist = (productId) => {
     const next = !wishlisted[productId];
@@ -101,10 +108,10 @@ export default function Products({ searchQuery = '' }) {
               {tabs.map((tab) => (
                 <button
                   key={tab}
-                  className={`tab-btn${activeTab === tab ? ' active' : ''}`}
+                  className={`tab-btn${activeTab === tab || (tab === 'On Sale' && selectedCategory === 'deals') ? ' active' : ''}`}
                   onClick={() => setActiveTab(tab)}
                   role="tab"
-                  aria-selected={activeTab === tab}
+                  aria-selected={activeTab === tab || (tab === 'On Sale' && selectedCategory === 'deals')}
                 >
                   {tab}
                 </button>

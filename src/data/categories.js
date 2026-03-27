@@ -7,6 +7,7 @@ const categories = [
   { id: 'cameras', icon: 'fa-camera', name: 'Cameras', count: '780+' },
   { id: 'tablets', icon: 'fa-tablet-alt', name: 'Tablets', count: '640+' },
   { id: 'smartwatches', icon: 'fa-clock', name: 'Smartwatches', count: '520+' },
+  { id: 'deals', icon: 'fa-fire', name: 'Deals', count: 'Sale' },
 ];
 
 export const headerCategories = [
