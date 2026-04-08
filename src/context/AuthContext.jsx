@@ -3,9 +3,18 @@ import { loginUser, registerUser } from '../services/api';
 import { useToast } from './ToastContext';
 
 const AuthContext = createContext();
+const USER_STORAGE_KEY = 'auth_user';
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Restore user from localStorage on page refresh
+    try {
+      const saved = localStorage.getItem(USER_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
@@ -17,6 +26,8 @@ export function AuthProvider({ children }) {
       const result = await loginUser(email, password);
       if (result.success) {
         setUser(result.user);
+        // Persist user to localStorage so session survives page refresh
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
         showToast('Successfully signed in!', 'success');
         return { success: true };
       }
@@ -36,6 +47,8 @@ export function AuthProvider({ children }) {
       const result = await registerUser(data);
       if (result.success) {
         setUser(result.user);
+        // Persist user to localStorage so session survives page refresh
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.user));
         showToast('Account created successfully!', 'success');
         return { success: true };
       }
@@ -51,6 +64,8 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     setUser(null);
+    // Remove user from localStorage on logout
+    localStorage.removeItem(USER_STORAGE_KEY);
     showToast('Signed out successfully.', 'success');
   }, [showToast]);
 

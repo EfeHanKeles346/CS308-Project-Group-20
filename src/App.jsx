@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext'; // useAuth eklendi!
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import CursorGlow from './components/CursorGlow';
@@ -61,17 +61,29 @@ function AppContent() {
   );
 }
 
+// YENİ EKLENEN KÖPRÜ BİLEŞEN: Kullanıcıyı alıp Cart'a fırlatır
+function CartAndWishlistProviders({ children }) {
+  const { user } = useAuth(); // AuthProvider'dan kullanıcıyı çekiyoruz
+
+  return (
+    <CartProvider user={user}> {/* user bilgisini CartProvider'a aktarıyoruz */}
+      <WishlistProvider>
+        {children}
+      </WishlistProvider>
+    </CartProvider>
+  );
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <ToastProvider>
           <AuthProvider>
-            <CartProvider>
-              <WishlistProvider>
-                <AppContent />
-              </WishlistProvider>
-            </CartProvider>
+            {/* Orijinal CartProvider yerine yeni köprümüzü koyduk */}
+            <CartAndWishlistProviders>
+              <AppContent />
+            </CartAndWishlistProviders>
           </AuthProvider>
         </ToastProvider>
       </BrowserRouter>
