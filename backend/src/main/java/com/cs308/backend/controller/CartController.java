@@ -48,16 +48,41 @@ public class CartController {
         if (existing.exists()) {
             // Item already exists in cart, increment quantity
             int currentQty = ((Number) Objects.requireNonNull(existing.get("quantity"))).intValue();
-            docRef.update("quantity", currentQty + quantity);
+            docRef.update("quantity", currentQty + quantity).get();
         } else {
             // Item not in cart yet, create a new entry
             Map<String, Object> newItem = new HashMap<>();
             newItem.put("productId", productId);
             newItem.put("quantity", quantity);
-            docRef.set(newItem);
+            docRef.set(newItem).get();
         }
 
         return Map.of("status", "ok", "productId", productId);
+    }
+
+    // Set a cart item's quantity directly so the frontend can persist +/- changes.
+    @PutMapping("/update")
+    public Map<String, Object> updateCartItemQuantity(@RequestBody Map<String, Object> body)
+            throws ExecutionException, InterruptedException {
+        String email = (String) body.get("userEmail");
+        String productId = body.get("productId").toString();
+        int quantity = ((Number) body.get("quantity")).intValue();
+
+        DocumentReference docRef = getDb()
+            .collection("carts").document(email)
+            .collection("items").document(productId);
+
+        if (quantity <= 0) {
+            docRef.delete().get();
+            return Map.of("status", "deleted", "productId", productId);
+        }
+
+        Map<String, Object> item = new HashMap<>();
+        item.put("productId", productId);
+        item.put("quantity", quantity);
+        docRef.set(item).get();
+
+        return Map.of("status", "updated", "productId", productId, "quantity", quantity);
     }
 
     // Remove a single product from the cart using productId and user email
@@ -66,7 +91,7 @@ public class CartController {
             @PathVariable String productId,
             @RequestParam String email) throws ExecutionException, InterruptedException {
         getDb().collection("carts").document(email)
-               .collection("items").document(productId).delete();
+               .collection("items").document(productId).delete().get();
         return Map.of("status", "deleted");
     }
 
@@ -76,7 +101,7 @@ public class CartController {
         CollectionReference cartRef = getDb().collection("carts").document(email).collection("items");
         List<QueryDocumentSnapshot> docs = cartRef.get().get().getDocuments();
         for (QueryDocumentSnapshot doc : docs) {
-            doc.getReference().delete();
+            doc.getReference().delete().get();
         }
         return Map.of("status", "cleared");
     }
