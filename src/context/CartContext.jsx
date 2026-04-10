@@ -180,10 +180,9 @@ export function CartProvider({ children, user }) {
   }, [showToast, user]);
 
   const removeFromCart = useCallback(async (productId) => {
-    const itemToRemove = items.find((item) => item.id === productId);
     setItems((prev) => prev.filter((item) => item.id !== productId));
 
-    if (user && user.email && itemToRemove?.dbId) {
+    if (user && user.email) {
       try {
         await axios.delete(`http://localhost:8080/api/cart/remove/${productId}?email=${user.email}`);
       } catch (error) {
@@ -191,17 +190,39 @@ export function CartProvider({ children, user }) {
       }
     }
     showToast('Product removed from cart.', 'error');
-  }, [items, showToast, user]);
+  }, [showToast, user]);
 
-  const updateQuantity = useCallback((productId, quantity) => {
-    if (quantity <= 0) {
-      setItems((prev) => prev.filter((item) => item.id !== productId));
+  const updateQuantity = useCallback(async (productId, quantity) => {
+    const existingItem = items.find((item) => item.id === productId);
+    if (!existingItem) return;
+
+    const nextQuantity = Math.max(0, Math.min(quantity, existingItem.stock ?? quantity));
+
+    if (nextQuantity <= 0) {
+      await removeFromCart(productId);
       return;
     }
+
+    const previousItems = items;
+
     setItems((prev) =>
-      prev.map((item) => (item.id === productId ? { ...item, quantity } : item))
+      prev.map((item) => (item.id === productId ? { ...item, quantity: nextQuantity } : item))
     );
-  }, []);
+
+    if (user && user.email) {
+      try {
+        await axios.put('http://localhost:8080/api/cart/update', {
+          userEmail: user.email,
+          productId,
+          quantity: nextQuantity,
+        });
+      } catch (error) {
+        console.error('Failed to update cart quantity on backend:', error);
+        setItems(previousItems);
+        showToast('Cart quantity could not be updated.', 'error');
+      }
+    }
+  }, [items, removeFromCart, showToast, user]);
 
   const clearCart = useCallback(async () => {
     setItems([]);
