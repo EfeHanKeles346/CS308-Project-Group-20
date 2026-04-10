@@ -19,7 +19,9 @@ public class FirebaseConfig {
     @Bean
     FirebaseApp firebaseApp(@Value("${firebase.credentials.path}") String credentialsPath) throws IOException {
         if (!FirebaseApp.getApps().isEmpty()) {
-            return FirebaseApp.getInstance();
+            for (FirebaseApp app : FirebaseApp.getApps()) {
+                app.delete();
+            }
         }
 
         try (FileInputStream serviceAccount = new FileInputStream(credentialsPath)) {
