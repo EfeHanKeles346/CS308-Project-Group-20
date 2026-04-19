@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
-import { AuthProvider, useAuth } from './context/AuthContext'; // useAuth eklendi!
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ProductsProvider } from './context/ProductsContext';
 import { WishlistProvider } from './context/WishlistContext';
 import CursorGlow from './components/CursorGlow';
 import Header from './components/Header';
@@ -45,10 +46,24 @@ function AppContent() {
       <ScrollToTop />
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <CursorGlow />
-      <Header onOpenModal={openModal} onSearch={handleSearch} selectedCategory={selectedCategory} onCategorySelect={handleCategorySelect} />
+      <Header
+        onOpenModal={openModal}
+        onSearch={handleSearch}
+        selectedCategory={selectedCategory}
+        onCategorySelect={handleCategorySelect}
+      />
       <main id="main-content">
         <Routes>
-          <Route path="/" element={<HomePage searchQuery={searchQuery} selectedCategory={selectedCategory} onCategorySelect={handleCategorySelect} />} />
+          <Route
+            path="/"
+            element={(
+              <HomePage
+                searchQuery={searchQuery}
+                selectedCategory={selectedCategory}
+                onCategorySelect={handleCategorySelect}
+              />
+            )}
+          />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
@@ -61,12 +76,11 @@ function AppContent() {
   );
 }
 
-// YENİ EKLENEN KÖPRÜ BİLEŞEN: Kullanıcıyı alıp Cart'a fırlatır
 function CartAndWishlistProviders({ children }) {
-  const { user } = useAuth(); // AuthProvider'dan kullanıcıyı çekiyoruz
+  const { user } = useAuth();
 
   return (
-    <CartProvider user={user}> {/* user bilgisini CartProvider'a aktarıyoruz */}
+    <CartProvider user={user}>
       <WishlistProvider>
         {children}
       </WishlistProvider>
@@ -80,10 +94,11 @@ export default function App() {
       <BrowserRouter>
         <ToastProvider>
           <AuthProvider>
-            {/* Orijinal CartProvider yerine yeni köprümüzü koyduk */}
-            <CartAndWishlistProviders>
-              <AppContent />
-            </CartAndWishlistProviders>
+            <ProductsProvider>
+              <CartAndWishlistProviders>
+                <AppContent />
+              </CartAndWishlistProviders>
+            </ProductsProvider>
           </AuthProvider>
         </ToastProvider>
       </BrowserRouter>

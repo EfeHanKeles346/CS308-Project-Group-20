@@ -3,7 +3,7 @@ import { loginUser, registerUser, fetchProducts, fetchProductById } from '../ser
 
 describe('API Service - loginUser', () => {
   beforeEach(() => {
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
   });
 
   afterEach(() => {
@@ -11,7 +11,7 @@ describe('API Service - loginUser', () => {
   });
 
   it('should return success with valid credentials', async () => {
-    global.fetch.mockResolvedValue({
+    globalThis.fetch.mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify({
         uid: 'user-1',
@@ -43,7 +43,7 @@ describe('API Service - loginUser', () => {
 
 describe('API Service - registerUser', () => {
   beforeEach(() => {
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
   });
 
   afterEach(() => {
@@ -51,7 +51,7 @@ describe('API Service - registerUser', () => {
   });
 
   it('should register with valid data', async () => {
-    global.fetch.mockResolvedValue({
+    globalThis.fetch.mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify({
         uid: 'user-2',
@@ -86,22 +86,53 @@ describe('API Service - registerUser', () => {
 });
 
 describe('API Service - fetchProducts', () => {
-  it('should return products array', async () => {
+  beforeEach(() => {
+    globalThis.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should return products array from backend', async () => {
+    globalThis.fetch.mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify([{ id: 1, name: 'Phone' }]),
+    });
+
     const result = await fetchProducts();
     expect(result.success).toBe(true);
     expect(Array.isArray(result.products)).toBe(true);
-    expect(result.products.length).toBeGreaterThan(0);
+    expect(result.products[0].id).toBe(1);
   });
 });
 
 describe('API Service - fetchProductById', () => {
+  beforeEach(() => {
+    globalThis.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should find existing product', async () => {
+    globalThis.fetch.mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ id: 1, name: 'Phone' }),
+    });
+
     const result = await fetchProductById(1);
     expect(result.success).toBe(true);
     expect(result.product.id).toBe(1);
   });
 
   it('should fail for non-existing product', async () => {
+    globalThis.fetch.mockResolvedValue({
+      ok: false,
+      text: async () => JSON.stringify({ message: 'Product not found.' }),
+    });
+
     const result = await fetchProductById(9999);
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();

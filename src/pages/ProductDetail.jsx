@@ -1,8 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
-import allProducts from '../data/products';
 import { useCart } from '../context/CartContext';
-import { useToast } from '../context/ToastContext';
+import { useProducts } from '../context/ProductsContext';
 
 function StarIcon({ value }) {
   if (value === 1) return <i className="fas fa-star" />;
@@ -12,19 +11,33 @@ function StarIcon({ value }) {
 
 export default function ProductDetail() {
   const { id } = useParams();
-  const product = allProducts.find((p) => p.id === Number(id));
+  const { products, loading, error } = useProducts();
+  const product = products.find((item) => item.id === Number(id));
   const { addToCart } = useCart();
-  const { showToast } = useToast();
   const [added, setAdded] = useState(false);
 
-  if (!product) {
+  if (loading) {
+    return (
+      <section className="product-detail-page section">
+        <div className="container">
+          <div className="empty-state">
+            <i className="fas fa-spinner" />
+            <h3>Product is loading</h3>
+            <p>Firestore product data is being fetched.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !product) {
     return (
       <section className="product-detail-page section">
         <div className="container">
           <div className="empty-state">
             <i className="fas fa-exclamation-triangle" />
             <h3>Product not found</h3>
-            <p>The product you're looking for doesn't exist or has been removed.</p>
+            <p>{error || "The product you're looking for doesn't exist or has been removed."}</p>
             <Link to="/" className="btn btn-primary" style={{ marginTop: '20px', display: 'inline-flex' }}>
               <i className="fas fa-arrow-left" /> <span>Back to Home</span>
             </Link>
@@ -67,7 +80,7 @@ export default function ProductDetail() {
 
             <div className="product-rating" style={{ marginBottom: '16px' }}>
               <div className="stars" aria-label={`Rating: ${product.rating} out of 5`}>
-                {product.stars.map((s, i) => <StarIcon key={i} value={s} />)}
+                {product.stars.map((star, index) => <StarIcon key={index} value={star} />)}
               </div>
               <span>{product.rating} ({product.reviewsDisplay} reviews)</span>
             </div>

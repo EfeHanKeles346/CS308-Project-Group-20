@@ -1,10 +1,25 @@
 package com.cs308.backend.controller;
 
-import com.google.cloud.firestore.*;
-import com.google.firebase.cloud.FirestoreClient;
-import org.springframework.web.bind.annotation.*;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -12,21 +27,47 @@ import java.util.concurrent.ExecutionException;
 @CrossOrigin(origins = "*")
 public class CartController {
 
-    // Returns a Firestore instance using the initialized Firebase app
-    private Firestore getDb() {
-        return FirestoreClient.getFirestore();
+    private final Firestore firestore;
+
+    public CartController(Firestore firestore) {
+        this.firestore = firestore;
+    }
+
+    private DocumentSnapshot getProductSnapshot(String productId) throws ExecutionException, InterruptedException {
+        DocumentSnapshot productSnapshot = firestore.collection("products").document(productId).get().get();
+        if (!productSnapshot.exists()) {
+            throw new IllegalArgumentException("Product not found: " + productId);
+        }
+        return productSnapshot;
+    }
+
+    private int getProductStock(String productId) throws ExecutionException, InterruptedException {
+        Object stock = getProductSnapshot(productId).get("stock");
+        if (!(stock instanceof Number number)) {
+            throw new IllegalStateException("Product stock is missing for product: " + productId);
+        }
+        return number.intValue();
     }
 
     // Get all cart items for a specific user by email
     @GetMapping("/{email}")
     public List<Map<String, Object>> getCart(@PathVariable String email) throws ExecutionException, InterruptedException {
-        CollectionReference cartRef = getDb().collection("carts").document(email).collection("items");
-        List<QueryDocumentSnapshot> docs = cartRef.get().get().getDocuments();
+        List<QueryDocumentSnapshot> docs = firestore.collection("carts").document(email).collection("items").get().get().getDocuments();
 
         List<Map<String, Object>> items = new ArrayList<>();
         for (QueryDocumentSnapshot doc : docs) {
-            Map<String, Object> item = doc.getData();
-            item.put("id", doc.getId()); // used as dbId on the frontend
+            Map<String, Object> item = new HashMap<>(doc.getData());
+            String productId = Objects.toString(item.get("productId"), doc.getId());
+            DocumentSnapshot productSnapshot = firestore.collection("products").document(productId).get().get();
+
+            item.put("productId", productId);
+            item.put("cartItemId", doc.getId());
+
+            if (productSnapshot.exists() && productSnapshot.getData() != null) {
+                item.putAll(productSnapshot.getData());
+                item.putIfAbsent("id", productId);
+            }
+
             items.add(item);
         }
         return items;
@@ -37,27 +78,37 @@ public class CartController {
     public Map<String, Object> addToCart(@RequestBody Map<String, Object> body) throws ExecutionException, InterruptedException {
         String email = (String) body.get("userEmail");
         String productId = body.get("productId").toString();
-        int quantity = ((Number) body.get("quantity")).intValue();
+        int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
+        int stock = getProductStock(productId);
 
-        DocumentReference docRef = getDb()
+        DocumentReference docRef = firestore
             .collection("carts").document(email)
             .collection("items").document(productId);
 
         DocumentSnapshot existing = docRef.get().get();
+        int nextQuantity = quantity;
 
         if (existing.exists()) {
             // Item already exists in cart, increment quantity
             int currentQty = ((Number) Objects.requireNonNull(existing.get("quantity"))).intValue();
-            docRef.update("quantity", currentQty + quantity).get();
+            nextQuantity = currentQty + quantity;
+        }
+
+        if (nextQuantity > stock) {
+            throw new IllegalArgumentException("Requested quantity exceeds product stock.");
+        }
+
+        if (existing.exists()) {
+            docRef.update("quantity", nextQuantity).get();
         } else {
             // Item not in cart yet, create a new entry
             Map<String, Object> newItem = new HashMap<>();
             newItem.put("productId", productId);
-            newItem.put("quantity", quantity);
+            newItem.put("quantity", nextQuantity);
             docRef.set(newItem).get();
         }
 
-        return Map.of("status", "ok", "productId", productId);
+        return Map.of("status", "ok", "productId", productId, "quantity", nextQuantity);
     }
 
     // Set a cart item's quantity directly so the frontend can persist +/- changes.
@@ -68,13 +119,18 @@ public class CartController {
         String productId = body.get("productId").toString();
         int quantity = ((Number) body.get("quantity")).intValue();
 
-        DocumentReference docRef = getDb()
+        DocumentReference docRef = firestore
             .collection("carts").document(email)
             .collection("items").document(productId);
 
         if (quantity <= 0) {
             docRef.delete().get();
             return Map.of("status", "deleted", "productId", productId);
+        }
+
+        int stock = getProductStock(productId);
+        if (quantity > stock) {
+            throw new IllegalArgumentException("Requested quantity exceeds product stock.");
         }
 
         Map<String, Object> item = new HashMap<>();
@@ -90,7 +146,7 @@ public class CartController {
     public Map<String, Object> removeFromCart(
             @PathVariable String productId,
             @RequestParam String email) throws ExecutionException, InterruptedException {
-        getDb().collection("carts").document(email)
+        firestore.collection("carts").document(email)
                .collection("items").document(productId).delete().get();
         return Map.of("status", "deleted");
     }
@@ -98,8 +154,7 @@ public class CartController {
     // Remove all items from the user's cart
     @DeleteMapping("/clear/{email}")
     public Map<String, Object> clearCart(@PathVariable String email) throws ExecutionException, InterruptedException {
-        CollectionReference cartRef = getDb().collection("carts").document(email).collection("items");
-        List<QueryDocumentSnapshot> docs = cartRef.get().get().getDocuments();
+        List<QueryDocumentSnapshot> docs = firestore.collection("carts").document(email).collection("items").get().get().getDocuments();
         for (QueryDocumentSnapshot doc : docs) {
             doc.getReference().delete().get();
         }

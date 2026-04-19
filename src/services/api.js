@@ -94,25 +94,33 @@ export async function registerUser(data) {
 }
 
 export async function fetchProducts() {
-  const products = (await import('../data/products.js')).default;
-  return { success: true, products };
+  const result = await request('/products');
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    products: Array.isArray(result.data) ? result.data : [],
+  };
 }
 
 export async function fetchProductById(id) {
-  const products = (await import('../data/products.js')).default;
-  const product = products.find((p) => p.id === id);
-  if (!product) return { success: false, error: 'Product not found.' };
-  return { success: true, product };
+  const result = await request(`/products/${id}`);
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    product: result.data,
+  };
 }
 
-export async function addToCartAPI(productId, quantity = 1) {
+export async function addToCartAPI() {
   return { success: true, message: 'Product added to cart.' };
 }
 
-export async function removeFromCartAPI(productId) {
+export async function removeFromCartAPI() {
   return { success: true, message: 'Product removed from cart.' };
 }
 
-export async function toggleWishlistAPI(productId) {
+export async function toggleWishlistAPI() {
   return { success: true };
 }

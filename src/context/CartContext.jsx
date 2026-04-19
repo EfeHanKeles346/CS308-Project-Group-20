@@ -1,8 +1,11 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useToast } from './ToastContext';
 import axios from 'axios';
-import products from '../data/products.js';
+import { useToast } from './ToastContext';
+import { useProducts } from './ProductsContext';
+import { normalizeProduct } from '../utils/productUtils';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 const GUEST_CART_KEY = 'guest_cart';
 const OPEN_TABS_KEY = 'guest_cart_open_tabs';
 const CartContext = createContext();
@@ -32,7 +35,12 @@ function readOpenTabs() {
 export function CartProvider({ children, user }) {
   const [items, setItems] = useState(() => readGuestCart());
   const { showToast } = useToast();
+  const { products, loading: productsLoading } = useProducts();
   const previousUserRef = useRef(user);
+
+  const productMap = useMemo(() => (
+    new Map(products.map((product) => [Number(product.id), product]))
+  ), [products]);
 
   useEffect(() => {
     const navigationEntry = performance.getEntriesByType('navigation')[0];
@@ -42,10 +50,9 @@ export function CartProvider({ children, user }) {
 
     localStorage.setItem(OPEN_TABS_KEY, String(nextOpenTabs));
 
-    // Start a fresh guest cart when a brand-new browser session begins.
     if (!user && nextOpenTabs === 1 && navigationType !== 'reload') {
       clearGuestCart();
-      setItems([]);
+      queueMicrotask(() => setItems([]));
     }
 
     const handleBeforeUnload = () => {
@@ -64,14 +71,12 @@ export function CartProvider({ children, user }) {
     };
   }, [user]);
 
-  // Keep guest cart shared across tabs during the current browser session.
   useEffect(() => {
     if (!user) {
       writeGuestCart(items);
     }
   }, [items, user]);
 
-  // React to guest cart updates coming from another tab.
   useEffect(() => {
     if (user) return undefined;
 
@@ -84,47 +89,49 @@ export function CartProvider({ children, user }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, [user]);
 
-  // Fetch cart from backend when user logs in, merge with guest cart, and reset on logout.
   useEffect(() => {
-    if (user && user.email) {
-      const guestItems = readGuestCart();
+    if (productsLoading) return;
 
-      axios.get(`http://localhost:8080/api/cart/${user.email}`)
+    if (user?.email) {
+      const guestItems = readGuestCart()
+        .map((item) => normalizeProduct(item))
+        .filter(Boolean);
+
+      axios.get(`${BASE_URL}/cart/${user.email}`)
         .then(async (response) => {
-          const dbItems = response.data.map((item) => {
-            const productDetail = products.find((p) => Number(p.id) === Number(item.productId));
-            return {
-              ...productDetail,
-              id: item.productId,
-              quantity: item.quantity,
-              dbId: item.id,
-            };
-          }).filter(Boolean);
+          const dbItems = response.data
+            .map((item) => normalizeProduct(item))
+            .filter(Boolean);
 
-          const mergedItems = [...dbItems];
+          const mergedItemsMap = new Map(
+            dbItems.map((item) => [Number(item.id), { ...item }])
+          );
 
           for (const guestItem of guestItems) {
-            const existing = mergedItems.find((item) => Number(item.id) === Number(guestItem.id));
-            if (existing) {
-              const newQty = Math.min(
-                existing.quantity + guestItem.quantity,
-                guestItem.stock || existing.stock
-              );
-              existing.quantity = newQty;
-            } else {
-              mergedItems.push(guestItem);
-            }
+            const productId = Number(guestItem.id);
+            const existing = mergedItemsMap.get(productId);
+            const baseItem = existing || productMap.get(productId) || guestItem;
+            const currentQuantity = existing?.quantity ?? 0;
+            const maxStock = baseItem.stock || guestItem.stock || currentQuantity + guestItem.quantity;
+            const mergedQuantity = Math.min(currentQuantity + guestItem.quantity, maxStock);
+
+            mergedItemsMap.set(productId, {
+              ...baseItem,
+              quantity: mergedQuantity,
+            });
 
             try {
-              await axios.post('http://localhost:8080/api/cart/add', {
+              await axios.put(`${BASE_URL}/cart/update`, {
                 userEmail: user.email,
-                productId: guestItem.id,
-                quantity: guestItem.quantity,
+                productId,
+                quantity: mergedQuantity,
               });
             } catch (error) {
               console.error('Failed to sync guest item to backend:', error);
             }
           }
+
+          const mergedItems = [...mergedItemsMap.values()];
 
           clearGuestCart();
           setItems(mergedItems);
@@ -132,17 +139,28 @@ export function CartProvider({ children, user }) {
         .catch((error) => {
           console.error('Failed to fetch cart from backend:', error);
         });
+    } else if (previousUserRef.current) {
+      clearGuestCart();
+      queueMicrotask(() => setItems([]));
     } else {
-      if (previousUserRef.current) {
-        clearGuestCart();
-        setItems([]);
-      } else {
-        setItems(readGuestCart());
-      }
+      const hydratedGuestCart = readGuestCart()
+        .map((item) => {
+          const product = productMap.get(Number(item.id));
+          if (!product) {
+            return normalizeProduct(item);
+          }
+          return normalizeProduct({
+            ...product,
+            quantity: item.quantity,
+          });
+        })
+        .filter(Boolean);
+
+      queueMicrotask(() => setItems(hydratedGuestCart));
     }
 
     previousUserRef.current = user;
-  }, [user]);
+  }, [productMap, productsLoading, user]);
 
   const cartCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
   const cartTotal = useMemo(
@@ -151,44 +169,55 @@ export function CartProvider({ children, user }) {
   );
 
   const addToCart = useCallback(async (product) => {
+    const normalizedProduct = normalizeProduct(product);
+    let reachedLimit = false;
+
     setItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+      const existing = prev.find((item) => item.id === normalizedProduct.id);
       if (existing) {
-        if (existing.quantity >= product.stock) {
-          showToast('Maximum stock reached!', 'error');
+        if (existing.quantity >= normalizedProduct.stock) {
+          reachedLimit = true;
           return prev;
         }
         return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === normalizedProduct.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...normalizedProduct, quantity: 1 }];
     });
 
-    if (user && user.email) {
+    if (reachedLimit) {
+      showToast('Maximum stock reached!', 'error');
+      return;
+    }
+
+    if (user?.email) {
       try {
-        await axios.post('http://localhost:8080/api/cart/add', {
+        await axios.post(`${BASE_URL}/cart/add`, {
           userEmail: user.email,
-          productId: product.id,
+          productId: normalizedProduct.id,
           quantity: 1,
         });
       } catch (error) {
         console.error('Failed to sync cart with backend:', error);
+        showToast(error?.response?.data?.message || 'Cart could not be synced.', 'error');
       }
     }
+
     showToast('Product added to cart!', 'success');
   }, [showToast, user]);
 
   const removeFromCart = useCallback(async (productId) => {
     setItems((prev) => prev.filter((item) => item.id !== productId));
 
-    if (user && user.email) {
+    if (user?.email) {
       try {
-        await axios.delete(`http://localhost:8080/api/cart/remove/${productId}?email=${user.email}`);
+        await axios.delete(`${BASE_URL}/cart/remove/${productId}?email=${user.email}`);
       } catch (error) {
         console.error('Failed to remove item from backend:', error);
       }
     }
+
     showToast('Product removed from cart.', 'error');
   }, [showToast, user]);
 
@@ -209,9 +238,9 @@ export function CartProvider({ children, user }) {
       prev.map((item) => (item.id === productId ? { ...item, quantity: nextQuantity } : item))
     );
 
-    if (user && user.email) {
+    if (user?.email) {
       try {
-        await axios.put('http://localhost:8080/api/cart/update', {
+        await axios.put(`${BASE_URL}/cart/update`, {
           userEmail: user.email,
           productId,
           quantity: nextQuantity,
@@ -219,16 +248,16 @@ export function CartProvider({ children, user }) {
       } catch (error) {
         console.error('Failed to update cart quantity on backend:', error);
         setItems(previousItems);
-        showToast('Cart quantity could not be updated.', 'error');
+        showToast(error?.response?.data?.message || 'Cart quantity could not be updated.', 'error');
       }
     }
   }, [items, removeFromCart, showToast, user]);
 
   const clearCart = useCallback(async () => {
     setItems([]);
-    if (user && user.email) {
+    if (user?.email) {
       try {
-        await axios.delete(`http://localhost:8080/api/cart/clear/${user.email}`);
+        await axios.delete(`${BASE_URL}/cart/clear/${user.email}`);
       } catch (error) {
         console.error('Failed to clear cart on backend:', error);
       }

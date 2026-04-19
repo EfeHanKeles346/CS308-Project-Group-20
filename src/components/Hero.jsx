@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useReveal from '../hooks/useReveal';
 import { useCart } from '../context/CartContext';
-import allProducts from '../data/products';
-
-const heroProducts = allProducts.slice(0, 5);
+import { useProducts } from '../context/ProductsContext';
 
 export default function Hero({ onCategorySelect }) {
   const [current, setCurrent] = useState(0);
@@ -12,9 +10,14 @@ export default function Hero({ onCategorySelect }) {
   const mainRef = useReveal();
   const visualRef = useReveal();
   const { addToCart } = useCart();
+  const { products } = useProducts();
   const navigate = useNavigate();
 
+  const heroProducts = products.slice(0, 5);
+
   useEffect(() => {
+    if (!heroProducts.length) return undefined;
+
     const interval = setInterval(() => {
       setSwitching(true);
       setTimeout(() => {
@@ -22,10 +25,15 @@ export default function Hero({ onCategorySelect }) {
         setSwitching(false);
       }, 500);
     }, 4000);
-    return () => clearInterval(interval);
-  }, []);
 
-  const p = heroProducts[current];
+    return () => clearInterval(interval);
+  }, [heroProducts.length]);
+
+  const product = heroProducts[heroProducts.length ? current % heroProducts.length : 0];
+
+  if (!product) {
+    return null;
+  }
 
   return (
     <section className="hero">
@@ -56,10 +64,13 @@ export default function Hero({ onCategorySelect }) {
               <span>Explore</span>
               <i className="fas fa-arrow-right" />
             </a>
-            <button className="btn btn-outline" onClick={() => {
-              onCategorySelect('deals');
-              document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
-            }}>
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                onCategorySelect('deals');
+                document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               <i className="fas fa-play" />
               <span>Deals</span>
             </button>
@@ -67,24 +78,33 @@ export default function Hero({ onCategorySelect }) {
         </div>
         <div className="hero-visual reveal" ref={visualRef}>
           <div className="hero-card-stack">
-            <div className={`hero-product-card${switching ? ' switching' : ''}`} onClick={() => navigate(`/product/${p.id}`)}>
+            <div
+              className={`hero-product-card${switching ? ' switching' : ''}`}
+              onClick={() => navigate(`/product/${product.id}`)}
+            >
               <div className="hpc-glow" />
-              <Link to={`/product/${p.id}`} className="hpc-image">
-                <img src={p.img.replace('w=600', 'w=400').replace('h=600', 'h=400')} alt={`${p.brand} ${p.name}`} />
+              <Link to={`/product/${product.id}`} className="hpc-image">
+                <img
+                  src={product.img.replace('w=600', 'w=400').replace('h=600', 'h=400')}
+                  alt={`${product.brand} ${product.name}`}
+                />
               </Link>
               <div className="hpc-info">
-                <span className="hpc-brand">{p.brand}</span>
-                <span className="hpc-name">{p.name}</span>
+                <span className="hpc-brand">{product.brand}</span>
+                <span className="hpc-name">{product.name}</span>
                 <div className="hpc-price">
-                  {p.oldPriceDisplay && <span className="hpc-old">{p.oldPriceDisplay}</span>}
-                  <span className="hpc-new">{p.priceDisplay}</span>
+                  {product.oldPriceDisplay && <span className="hpc-old">{product.oldPriceDisplay}</span>}
+                  <span className="hpc-new">{product.priceDisplay}</span>
                 </div>
               </div>
               <div className="hpc-hover-overlay">
                 <button
                   className="btn btn-primary btn-sm hpc-cart-btn"
-                  onClick={(e) => { e.stopPropagation(); addToCart(p); }}
-                  disabled={p.stock === 0}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    addToCart(product);
+                  }}
+                  disabled={product.stock === 0}
                 >
                   <i className="fas fa-shopping-bag" /> Add to Cart
                 </button>

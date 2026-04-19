@@ -4,7 +4,7 @@ import useReveal from '../hooks/useReveal';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
-import allProducts from '../data/products';
+import { useProducts } from '../context/ProductsContext';
 
 const tabs = ['All', 'Best Sellers', 'New', 'On Sale'];
 const sortOptions = [
@@ -23,62 +23,56 @@ function StarIcon({ value }) {
 
 export default function Products({ searchQuery = '', selectedCategory = null, onCategorySelect }) {
   const [activeTab, setActiveTab] = useState('All');
-  const [sortBy, setSortBy] = useState('default');
   const [wishlisted, setWishlisted] = useState({});
+  const [sortBy, setSortBy] = useState('default');
   const [addedMap, setAddedMap] = useState({});
   const { showToast } = useToast();
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist } = useWishlist();
+  const { products, loading, error } = useProducts();
   const headerRef = useReveal();
 
-  useEffect(() => {
-    if (selectedCategory === 'deals') setActiveTab('On Sale');
-  }, [selectedCategory]);
+  const visibleTab = selectedCategory === 'deals' ? 'On Sale' : activeTab;
 
   const filteredProducts = useMemo(() => {
-    let result = [...allProducts];
+    let result = [...products];
 
-    // Category filter
     if (selectedCategory === 'deals') {
-      result = result.filter((p) => p.tags.includes('sale'));
+      result = result.filter((product) => product.tags.includes('sale'));
     } else if (selectedCategory) {
-      result = result.filter((p) => p.category === selectedCategory);
+      result = result.filter((product) => product.category === selectedCategory);
     }
 
-    // Tab filter
-    if (activeTab === 'Best Sellers') {
-      result = result.filter((p) => p.tags.includes('best-seller'));
-    } else if (activeTab === 'New') {
-      result = result.filter((p) => p.tags.includes('new'));
-    } else if (activeTab === 'On Sale') {
-      result = result.filter((p) => p.tags.includes('sale'));
+    if (visibleTab === 'Best Sellers') {
+      result = result.filter((product) => product.tags.includes('best-seller'));
+    } else if (visibleTab === 'New') {
+      result = result.filter((product) => product.tags.includes('new'));
+    } else if (visibleTab === 'On Sale') {
+      result = result.filter((product) => product.tags.includes('sale'));
     }
 
-    // Search filter
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
+      const query = searchQuery.toLowerCase();
+      result = result.filter((product) =>
+        product.name.toLowerCase().includes(query)
+        || product.brand.toLowerCase().includes(query)
+        || product.description.toLowerCase().includes(query)
+        || product.category.toLowerCase().includes(query)
       );
     }
 
-    // Sort
     if (sortBy === 'price-asc') {
-      result.sort((a, b) => a.price - b.price);
+      result.sort((first, second) => first.price - second.price);
     } else if (sortBy === 'price-desc') {
-      result.sort((a, b) => b.price - a.price);
+      result.sort((first, second) => second.price - first.price);
     } else if (sortBy === 'rating') {
-      result.sort((a, b) => b.reviews - a.reviews);
+      result.sort((first, second) => second.reviews - first.reviews);
     } else if (sortBy === 'name') {
-      result.sort((a, b) => a.name.localeCompare(b.name));
+      result.sort((first, second) => first.name.localeCompare(second.name));
     }
 
     return result;
-  }, [activeTab, searchQuery, sortBy, selectedCategory]);
+  }, [products, searchQuery, selectedCategory, sortBy, visibleTab]);
 
   const toggleWishlist = (product) => {
     const next = !wishlisted[product.id];
@@ -116,13 +110,13 @@ export default function Products({ searchQuery = '', selectedCategory = null, on
               {tabs.map((tab) => (
                 <button
                   key={tab}
-                  className={`tab-btn${activeTab === tab ? ' active' : ''}`}
+                  className={`tab-btn${visibleTab === tab ? ' active' : ''}`}
                   onClick={() => {
                     setActiveTab(tab);
                     if (selectedCategory === 'deals' && tab !== 'On Sale') onCategorySelect('deals');
                   }}
                   role="tab"
-                  aria-selected={activeTab === tab}
+                  aria-selected={visibleTab === tab}
                 >
                   {tab}
                 </button>
@@ -131,86 +125,92 @@ export default function Products({ searchQuery = '', selectedCategory = null, on
             <select
               className="sort-select"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(event) => setSortBy(event.target.value)}
               aria-label="Sort products"
             >
-              {sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </div>
         </div>
 
-        {filteredProducts.length === 0 ? (
+        {error ? (
+          <div className="empty-state" role="status">
+            <i className="fas fa-database" />
+            <h3>Products could not be loaded</h3>
+            <p>{error}</p>
+          </div>
+        ) : !loading && filteredProducts.length === 0 ? (
           <div className="empty-state" role="status">
             <i className="fas fa-search" />
             <h3>No products found</h3>
             <p>Try adjusting your search or filter to find what you're looking for.</p>
           </div>
-        ) : (
+        ) : !loading ? (
           <div className="product-grid" role="list" aria-label="Products">
-            {filteredProducts.map((p) => (
+            {filteredProducts.map((product) => (
               <ProductCard
-                key={p.id}
-                product={p}
-                isWishlisted={!!wishlisted[p.id]}
-                isAdded={!!addedMap[p.id]}
-                onToggleWishlist={() => toggleWishlist(p)}
-                onAddToCart={() => handleAddToCart(p)}
+                key={product.id}
+                product={product}
+                isWishlisted={!!wishlisted[product.id]}
+                isAdded={!!addedMap[product.id]}
+                onToggleWishlist={() => toggleWishlist(product)}
+                onAddToCart={() => handleAddToCart(product)}
               />
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </section>
   );
 }
 
-function ProductCard({ product: p, isWishlisted, isAdded, onToggleWishlist, onAddToCart }) {
+function ProductCard({ product, isWishlisted, isAdded, onToggleWishlist, onAddToCart }) {
   const ref = useReveal();
 
   return (
     <article className="product-card reveal" ref={ref} role="listitem">
-      {p.badge && (
-        <div className={`product-badge badge-${p.badgeType}`}>{p.badge}</div>
+      {product.badge && (
+        <div className={`product-badge badge-${product.badgeType}`}>{product.badge}</div>
       )}
       <button
         className={`wishlist-btn${isWishlisted ? ' active' : ''}`}
         onClick={onToggleWishlist}
-        aria-label={isWishlisted ? `Remove ${p.name} from wishlist` : `Add ${p.name} to wishlist`}
+        aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
       >
         <i className={`${isWishlisted ? 'fas' : 'far'} fa-heart`} />
       </button>
-      <Link to={`/product/${p.id}`} className="product-image-link">
+      <Link to={`/product/${product.id}`} className="product-image-link">
         <div className="product-image">
-          <img src={p.img} alt={p.name} loading="lazy" />
+          <img src={product.img} alt={product.name} loading="lazy" />
         </div>
       </Link>
       <div className="product-info">
-        <span className="product-brand">{p.brand}</span>
+        <span className="product-brand">{product.brand}</span>
         <h3 className="product-name">
-          <Link to={`/product/${p.id}`} className="product-name-link">{p.name}</Link>
+          <Link to={`/product/${product.id}`} className="product-name-link">{product.name}</Link>
         </h3>
         <div className="product-rating">
-          <div className="stars" aria-label={`Rating: ${p.rating} out of 5`}>
-            {p.stars.map((s, i) => <StarIcon key={i} value={s} />)}
+          <div className="stars" aria-label={`Rating: ${product.rating} out of 5`}>
+            {product.stars.map((star, index) => <StarIcon key={index} value={star} />)}
           </div>
-          <span>{p.rating} ({p.reviewsDisplay})</span>
+          <span>{product.rating} ({product.reviewsDisplay})</span>
         </div>
         <div className="product-price">
-          {p.oldPriceDisplay && <span className="price-old">{p.oldPriceDisplay}</span>}
-          <span className="price-current">{p.priceDisplay}</span>
+          {product.oldPriceDisplay && <span className="price-old">{product.oldPriceDisplay}</span>}
+          <span className="price-current">{product.priceDisplay}</span>
         </div>
-        {p.stock <= 5 && p.stock > 0 && (
+        {product.stock <= 5 && product.stock > 0 && (
           <span className="stock-warning">
-            <i className="fas fa-exclamation-circle" /> Only {p.stock} left in stock
+            <i className="fas fa-exclamation-circle" /> Only {product.stock} left in stock
           </span>
         )}
         <button
           className="add-to-cart"
           onClick={onAddToCart}
-          disabled={p.stock === 0}
-          aria-label={`Add ${p.name} to cart`}
+          disabled={product.stock === 0}
+          aria-label={`Add ${product.name} to cart`}
           style={isAdded ? {
             background: 'var(--gradient-primary)',
             borderColor: 'transparent',
@@ -218,7 +218,7 @@ function ProductCard({ product: p, isWishlisted, isAdded, onToggleWishlist, onAd
             boxShadow: 'var(--shadow-glow)',
           } : undefined}
         >
-          {p.stock === 0 ? (
+          {product.stock === 0 ? (
             <><i className="fas fa-ban" /> Out of Stock</>
           ) : isAdded ? (
             <><i className="fas fa-check" /> Added!</>
