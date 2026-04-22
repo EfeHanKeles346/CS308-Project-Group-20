@@ -88,10 +88,10 @@ export default function CartPage() {
               <span>Total</span>
               <span>${cartTotal.toLocaleString()}</span>
             </div>
-            <button className="btn btn-primary btn-full" style={{ marginTop: '16px' }}>
+            <Link to="/checkout" className="btn btn-primary btn-full" style={{ marginTop: '16px' }}>
               <span>Proceed to Checkout</span>
               <i className="fas fa-arrow-right" />
-            </button>
+            </Link>
             <button className="cart-clear-btn" onClick={clearCart}>
               <i className="fas fa-trash" /> Clear Cart
             </button>
