@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getSavedAddress, saveAddress } from '../utils/profileStorage';
+import { createOrder } from '../services/api';
 import {
   formatCardNumber,
   formatExpiry,
@@ -30,6 +31,7 @@ export default function PaymentPage() {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [orderComplete, setOrderComplete] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setAddress(getSavedAddress(user));
@@ -99,13 +101,50 @@ export default function PaymentPage() {
       return;
     }
 
+    if (!user?.email) {
+      showToast('Please log in before placing an order.', 'error');
+      return;
+    }
+
     const savedAddress = saveAddress(user, address);
     const cardDigits = normalizeCardNumber(card.cardNumber);
 
+    const orderPayload = {
+      userEmail: user.email,
+      fullName: savedAddress.fullName,
+      deliveryAddress: {
+        label: savedAddress.label || 'Home',
+        fullName: savedAddress.fullName,
+        phone: savedAddress.phone,
+        line1: savedAddress.line1,
+        line2: savedAddress.line2 || '',
+        city: savedAddress.city,
+        state: savedAddress.state || '',
+        postalCode: savedAddress.postalCode,
+        country: savedAddress.country,
+      },
+      items: items.map((item) => ({
+        productId: String(item.id),
+        productName: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+      })),
+    };
+
+    setSubmitting(true);
+    const result = await createOrder(orderPayload);
+    setSubmitting(false);
+
+    if (!result.success) {
+      showToast(result.error || 'Could not place your order.', 'error');
+      return;
+    }
+
     setOrderComplete({
+      orderId: result.order.orderId,
       address: savedAddress,
       items,
-      total: cartTotal,
+      total: result.order.totalPrice ?? cartTotal,
       last4: cardDigits.slice(-4),
     });
 
@@ -113,7 +152,7 @@ export default function PaymentPage() {
     setCard(initialCardState);
     setErrors({});
     setTouched({});
-    showToast('Mock payment approved. Your order is confirmed!', 'success');
+    showToast('Payment approved. Your order is confirmed!', 'success');
   };
 
   if (orderComplete) {
@@ -422,9 +461,13 @@ export default function PaymentPage() {
                 <span>${cartTotal.toLocaleString()}</span>
               </div>
 
-              <button className="btn btn-primary btn-full checkout-submit" type="submit">
+              <button
+                className="btn btn-primary btn-full checkout-submit"
+                type="submit"
+                disabled={submitting}
+              >
                 <i className="fas fa-lock" />
-                <span>Pay ${cartTotal.toLocaleString()}</span>
+                <span>{submitting ? 'Processing...' : `Pay $${cartTotal.toLocaleString()}`}</span>
               </button>
 
               <p className="checkout-note">
