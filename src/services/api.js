@@ -1,6 +1,4 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-const MOCK_AUTH_STORAGE_KEY = 'techmind_mock_auth_users';
-const ENABLE_MOCK_AUTH = import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 
 async function parseJsonSafe(response) {
   const text = await response.text();
@@ -46,86 +44,15 @@ function mapAuthUser(data) {
   };
 }
 
-function readMockUsers() {
-  try {
-    const raw = localStorage.getItem(MOCK_AUTH_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeMockUsers(users) {
-  localStorage.setItem(MOCK_AUTH_STORAGE_KEY, JSON.stringify(users));
-}
-
-function createMockToken(email) {
-  return `mock-token-${email}-${Date.now()}`;
-}
-
-function isNetworkError(error) {
-  return error instanceof TypeError || error?.name === 'TypeError';
-}
-
-function shouldUseMockAuth(error) {
-  return ENABLE_MOCK_AUTH && isNetworkError(error);
-}
-
-function buildMockAuthSuccess(user) {
-  return {
-    success: true,
-    user: mapAuthUser(user),
-    token: createMockToken(user.email),
-    refreshToken: `mock-refresh-${user.uid}`,
-  };
-}
-
-function loginMockUser(email, password) {
-  const normalizedEmail = email.trim().toLowerCase();
-  const user = readMockUsers().find((item) => item.email.toLowerCase() === normalizedEmail);
-
-  if (!user || user.password !== password) {
-    return { success: false, error: 'Invalid email or password.' };
-  }
-
-  return buildMockAuthSuccess(user);
-}
-
-function registerMockUser(data) {
-  const normalizedEmail = data.email.trim().toLowerCase();
-  const users = readMockUsers();
-
-  if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
-    return { success: false, error: 'An account with this email already exists.' };
-  }
-
-  const user = {
-    uid: `mock-${globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Date.now()}`,
-    email: normalizedEmail,
-    displayName: `${data.firstName} ${data.lastName}`.trim(),
-    phone: data.phone || '',
-    password: data.password,
-  };
-
-  writeMockUsers([...users, user]);
-  return buildMockAuthSuccess(user);
-}
-
 export async function loginUser(email, password) {
   if (!email || !password) {
     return { success: false, error: 'Email and password are required.' };
   }
 
-  let result;
-  try {
-    result = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-  } catch (error) {
-    if (shouldUseMockAuth(error)) return loginMockUser(email, password);
-    throw error;
-  }
+  const result = await request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
 
   if (!result.success) return result;
 
@@ -145,22 +72,16 @@ export async function registerUser(data) {
     return { success: false, error: 'Password must be at least 8 characters.' };
   }
 
-  let result;
-  try {
-    result = await request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone || '',
-        password: data.password,
-      }),
-    });
-  } catch (error) {
-    if (shouldUseMockAuth(error)) return registerMockUser(data);
-    throw error;
-  }
+  const result = await request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone || '',
+      password: data.password,
+    }),
+  });
 
   if (!result.success) return result;
 
