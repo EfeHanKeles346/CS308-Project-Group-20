@@ -3,12 +3,15 @@ package com.cs308.backend.service;
 import com.cs308.backend.model.Order;
 import com.cs308.backend.model.OrderItem;
 import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -45,12 +48,57 @@ public class OrderService {
         order.setStatus("PAID");
         order.setTotalPrice(total);
 
+        decrementStockAtomically(order);
+
         DocumentReference ref = firestore.collection("orders").document(order.getOrderId());
         ref.set(order).get();
 
         clearUserCart(order.getUserEmail());
 
         return order;
+    }
+
+    private void decrementStockAtomically(Order order) throws ExecutionException, InterruptedException {
+        Map<String, DocumentReference> productRefs = new HashMap<>();
+        for (OrderItem item : order.getItems()) {
+            productRefs.computeIfAbsent(item.getProductId(),
+                id -> firestore.collection("products").document(id));
+        }
+
+        firestore.runTransaction(tx -> {
+            Map<String, Integer> currentStock = new HashMap<>();
+            for (Map.Entry<String, DocumentReference> entry : productRefs.entrySet()) {
+                DocumentSnapshot snap = tx.get(entry.getValue()).get();
+                if (!snap.exists()) {
+                    throw new IllegalArgumentException("Product not found: " + entry.getKey());
+                }
+                Object stockObj = snap.get("stock");
+                if (!(stockObj instanceof Number stockNum)) {
+                    throw new IllegalStateException("Product stock missing: " + entry.getKey());
+                }
+                currentStock.put(entry.getKey(), stockNum.intValue());
+            }
+
+            Map<String, Integer> requested = new HashMap<>();
+            for (OrderItem item : order.getItems()) {
+                requested.merge(item.getProductId(), item.getQuantity(), Integer::sum);
+            }
+
+            for (Map.Entry<String, Integer> entry : requested.entrySet()) {
+                int have = currentStock.getOrDefault(entry.getKey(), 0);
+                if (have < entry.getValue()) {
+                    throw new IllegalStateException(
+                        "Insufficient stock for product " + entry.getKey()
+                            + " (have " + have + ", need " + entry.getValue() + ")");
+                }
+            }
+
+            for (Map.Entry<String, Integer> entry : requested.entrySet()) {
+                int nextStock = currentStock.get(entry.getKey()) - entry.getValue();
+                tx.update(productRefs.get(entry.getKey()), "stock", nextStock);
+            }
+            return null;
+        }).get();
     }
 
     private void clearUserCart(String email) throws ExecutionException, InterruptedException {
