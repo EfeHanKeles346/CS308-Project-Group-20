@@ -16,6 +16,8 @@ import HomePage from './pages/HomePage';
 import CartPage from './pages/CartPage';
 import ProductDetail from './pages/ProductDetail';
 import WishlistPage from './pages/WishlistPage';
+import PaymentPage from './pages/PaymentPage';
+import UserPage from './pages/UserPage';
 
 function AppContent() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -66,6 +68,8 @@ function AppContent() {
           />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<PaymentPage />} />
+          <Route path="/account" element={<UserPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
         </Routes>
       </main>

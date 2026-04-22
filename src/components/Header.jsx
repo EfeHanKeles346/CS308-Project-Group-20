@@ -9,8 +9,14 @@ export default function Header({ onOpenModal, onSearch, selectedCategory, onCate
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const { cartCount } = useCart();
-  const { isLoggedIn, user, logout } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
+  const userInitials = user?.name
+    ?.split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'TM';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -84,9 +90,9 @@ export default function Header({ onOpenModal, onSearch, selectedCategory, onCate
 
         <div className="header-actions">
           {isLoggedIn ? (
-            <button className="header-icon-btn" onClick={logout} aria-label={`Signed in as ${user?.name}. Click to sign out.`} style={{ color: 'var(--cyan)' }} title={`${user?.name} - Sign Out`}>
-              <i className="fas fa-user-check" />
-            </button>
+            <Link className="header-icon-btn header-profile-btn" to="/account" aria-label={`${user?.name} account`} title={`${user?.name} account`}>
+              <span className="header-avatar">{userInitials}</span>
+            </Link>
           ) : (
             <button className="header-icon-btn" onClick={() => onOpenModal('login')} aria-label="Sign in" id="authBtn">
               <i className="fas fa-user" />
