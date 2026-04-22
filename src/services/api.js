@@ -137,3 +137,17 @@ export async function createOrder(orderPayload) {
     order: result.data,
   };
 }
+
+export async function fetchUserOrders(email) {
+  if (!email) {
+    return { success: false, error: 'Email is required.' };
+  }
+
+  const result = await request(`/orders/user/${encodeURIComponent(email)}`);
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    orders: Array.isArray(result.data) ? result.data : [],
+  };
+}
