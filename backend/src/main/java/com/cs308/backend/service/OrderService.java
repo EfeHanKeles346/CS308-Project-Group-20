@@ -6,6 +6,8 @@ import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,10 +20,16 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class OrderService {
 
-    private final Firestore firestore;
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
-    public OrderService(Firestore firestore) {
+    private final Firestore firestore;
+    private final InvoiceService invoiceService;
+    private final EmailService emailService;
+
+    public OrderService(Firestore firestore, InvoiceService invoiceService, EmailService emailService) {
         this.firestore = firestore;
+        this.invoiceService = invoiceService;
+        this.emailService = emailService;
     }
 
     public Order createOrder(Order order) throws ExecutionException, InterruptedException {
@@ -54,8 +62,35 @@ public class OrderService {
         ref.set(order).get();
 
         clearUserCart(order.getUserEmail());
+        sendInvoiceEmailSafely(order);
 
         return order;
+    }
+
+    private void sendInvoiceEmailSafely(Order order) {
+        try {
+            byte[] pdf = invoiceService.buildInvoice(order);
+            emailService.sendInvoiceEmail(order, pdf);
+        } catch (RuntimeException ex) {
+            log.error("Invoice email delivery failed for order {}: {}", order.getOrderId(), ex.getMessage());
+        }
+    }
+
+    public Order getOrderById(String orderId) throws ExecutionException, InterruptedException {
+        if (orderId == null || orderId.isBlank()) {
+            throw new IllegalArgumentException("orderId is required");
+        }
+        DocumentSnapshot snapshot = firestore.collection("orders").document(orderId).get().get();
+        if (!snapshot.exists()) {
+            return null;
+        }
+        return snapshot.toObject(Order.class);
+    }
+
+    public byte[] getInvoicePdf(String orderId) throws ExecutionException, InterruptedException {
+        Order order = getOrderById(orderId);
+        if (order == null) return null;
+        return invoiceService.buildInvoice(order);
     }
 
     private void decrementStockAtomically(Order order) throws ExecutionException, InterruptedException {
