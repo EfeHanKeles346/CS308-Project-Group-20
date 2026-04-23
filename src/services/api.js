@@ -138,6 +138,11 @@ export async function createOrder(orderPayload) {
   };
 }
 
+export function getInvoiceDownloadUrl(orderId) {
+  if (!orderId) return null;
+  return `${BASE_URL}/orders/${encodeURIComponent(orderId)}/invoice`;
+}
+
 export async function fetchUserOrders(email) {
   if (!email) {
     return { success: false, error: 'Email is required.' };

@@ -189,9 +189,9 @@ export default function PaymentPage() {
                 <i className="fas fa-house" />
                 <span>Back to Home</span>
               </button>
-              <Link to="/account" className="btn btn-outline">
-                <i className="fas fa-user" />
-                <span>Manage Address</span>
+              <Link to="/account?tab=orders" className="btn btn-outline">
+                <i className="fas fa-box" />
+                <span>View My Orders</span>
               </Link>
             </div>
           </div>
