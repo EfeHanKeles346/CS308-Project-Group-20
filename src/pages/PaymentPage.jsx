@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getSavedAddress, saveAddress } from '../utils/profileStorage';
+import { createOrder, getInvoiceDownloadUrl } from '../services/api';
 import {
   formatCardNumber,
   formatExpiry,
@@ -30,6 +31,7 @@ export default function PaymentPage() {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [orderComplete, setOrderComplete] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setAddress(getSavedAddress(user));
@@ -82,6 +84,7 @@ export default function PaymentPage() {
     setErrors(nextErrors);
     setTouched({
       fullName: true,
+      email: true,
       phone: true,
       line1: true,
       line2: true,
@@ -102,10 +105,43 @@ export default function PaymentPage() {
     const savedAddress = saveAddress(user, address);
     const cardDigits = normalizeCardNumber(card.cardNumber);
 
+    const orderPayload = {
+      userEmail: savedAddress.email,
+      fullName: savedAddress.fullName,
+      deliveryAddress: {
+        label: savedAddress.label || 'Home',
+        fullName: savedAddress.fullName,
+        phone: savedAddress.phone,
+        line1: savedAddress.line1,
+        line2: savedAddress.line2 || '',
+        city: savedAddress.city,
+        state: savedAddress.state || '',
+        postalCode: savedAddress.postalCode,
+        country: savedAddress.country,
+      },
+      items: items.map((item) => ({
+        productId: String(item.id),
+        productName: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+      })),
+    };
+
+    setSubmitting(true);
+    const result = await createOrder(orderPayload);
+    setSubmitting(false);
+
+    if (!result.success) {
+      showToast(result.error || 'Could not place your order.', 'error');
+      return;
+    }
+
     setOrderComplete({
+      orderId: result.order.orderId,
       address: savedAddress,
+      email: savedAddress.email,
       items,
-      total: cartTotal,
+      total: result.order.totalPrice ?? cartTotal,
       last4: cardDigits.slice(-4),
     });
 
@@ -113,7 +149,7 @@ export default function PaymentPage() {
     setCard(initialCardState);
     setErrors({});
     setTouched({});
-    showToast('Mock payment approved. Your order is confirmed!', 'success');
+    showToast('Payment approved. Your order is confirmed!', 'success');
   };
 
   if (orderComplete) {
@@ -150,11 +186,26 @@ export default function PaymentPage() {
                 <i className="fas fa-house" />
                 <span>Back to Home</span>
               </button>
-              <Link to="/account" className="btn btn-outline">
-                <i className="fas fa-user" />
-                <span>Manage Address</span>
-              </Link>
+              <a
+                className="btn btn-outline"
+                href={getInvoiceDownloadUrl(orderComplete.orderId)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i className="fas fa-file-pdf" />
+                <span>Invoice (PDF)</span>
+              </a>
+              {user && (
+                <Link to="/account?tab=orders" className="btn btn-outline">
+                  <i className="fas fa-box" />
+                  <span>View My Orders</span>
+                </Link>
+              )}
             </div>
+            <p className="checkout-note checkout-email-note">
+              <i className="fas fa-envelope" /> A copy of your invoice has been emailed to{' '}
+              <strong>{orderComplete.email}</strong>.
+            </p>
           </div>
         </div>
       </section>
@@ -234,6 +285,24 @@ export default function PaymentPage() {
                     placeholder="+90 555 555 55 55"
                   />
                   {visibleErrors.phone && <span className="field-error">{visibleErrors.phone}</span>}
+                </label>
+
+                <label className="field-group field-group-full">
+                  <span className="field-label">
+                    Email
+                    {user?.email && <span className="field-hint"> · from your account</span>}
+                  </span>
+                  <input
+                    className={`field-input${visibleErrors.email ? ' invalid' : ''}`}
+                    type="email"
+                    name="email"
+                    value={address.email}
+                    onChange={handleAddressChange}
+                    onBlur={handleBlur}
+                    placeholder="you@example.com"
+                    readOnly={Boolean(user?.email)}
+                  />
+                  {visibleErrors.email && <span className="field-error">{visibleErrors.email}</span>}
                 </label>
 
                 <label className="field-group field-group-full">
@@ -422,9 +491,13 @@ export default function PaymentPage() {
                 <span>${cartTotal.toLocaleString()}</span>
               </div>
 
-              <button className="btn btn-primary btn-full checkout-submit" type="submit">
+              <button
+                className="btn btn-primary btn-full checkout-submit"
+                type="submit"
+                disabled={submitting}
+              >
                 <i className="fas fa-lock" />
-                <span>Pay ${cartTotal.toLocaleString()}</span>
+                <span>{submitting ? 'Processing...' : `Pay $${cartTotal.toLocaleString()}`}</span>
               </button>
 
               <p className="checkout-note">

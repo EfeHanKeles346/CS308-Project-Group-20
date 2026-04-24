@@ -124,3 +124,35 @@ export async function removeFromCartAPI() {
 export async function toggleWishlistAPI() {
   return { success: true };
 }
+
+export async function createOrder(orderPayload) {
+  const result = await request('/orders', {
+    method: 'POST',
+    body: JSON.stringify(orderPayload),
+  });
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    order: result.data,
+  };
+}
+
+export function getInvoiceDownloadUrl(orderId) {
+  if (!orderId) return null;
+  return `${BASE_URL}/orders/${encodeURIComponent(orderId)}/invoice`;
+}
+
+export async function fetchUserOrders(email) {
+  if (!email) {
+    return { success: false, error: 'Email is required.' };
+  }
+
+  const result = await request(`/orders/user/${encodeURIComponent(email)}`);
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    orders: Array.isArray(result.data) ? result.data : [],
+  };
+}

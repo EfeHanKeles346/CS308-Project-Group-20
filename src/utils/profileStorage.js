@@ -2,6 +2,7 @@ const ADDRESS_STORAGE_PREFIX = 'techmind_profile_address';
 
 export const emptyAddress = Object.freeze({
   fullName: '',
+  email: '',
   phone: '',
   line1: '',
   line2: '',
@@ -15,11 +16,16 @@ function getStorageKey(user) {
 }
 
 export function createAddressDraft(user, address = {}) {
-  return {
+  const draft = {
     ...emptyAddress,
     fullName: user?.name || '',
+    email: user?.email || '',
     ...address,
   };
+  if (user?.email) {
+    draft.email = user.email;
+  }
+  return draft;
 }
 
 export function getSavedAddress(user) {
