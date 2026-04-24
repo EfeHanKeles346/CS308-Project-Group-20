@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getSavedAddress, saveAddress } from '../utils/profileStorage';
-import { createOrder } from '../services/api';
+import { createOrder, getInvoiceDownloadUrl } from '../services/api';
 import {
   formatCardNumber,
   formatExpiry,
@@ -84,6 +84,7 @@ export default function PaymentPage() {
     setErrors(nextErrors);
     setTouched({
       fullName: true,
+      email: true,
       phone: true,
       line1: true,
       line2: true,
@@ -101,16 +102,11 @@ export default function PaymentPage() {
       return;
     }
 
-    if (!user?.email) {
-      showToast('Please log in before placing an order.', 'error');
-      return;
-    }
-
     const savedAddress = saveAddress(user, address);
     const cardDigits = normalizeCardNumber(card.cardNumber);
 
     const orderPayload = {
-      userEmail: user.email,
+      userEmail: savedAddress.email,
       fullName: savedAddress.fullName,
       deliveryAddress: {
         label: savedAddress.label || 'Home',
@@ -143,6 +139,7 @@ export default function PaymentPage() {
     setOrderComplete({
       orderId: result.order.orderId,
       address: savedAddress,
+      email: savedAddress.email,
       items,
       total: result.order.totalPrice ?? cartTotal,
       last4: cardDigits.slice(-4),
@@ -189,11 +186,26 @@ export default function PaymentPage() {
                 <i className="fas fa-house" />
                 <span>Back to Home</span>
               </button>
-              <Link to="/account?tab=orders" className="btn btn-outline">
-                <i className="fas fa-box" />
-                <span>View My Orders</span>
-              </Link>
+              <a
+                className="btn btn-outline"
+                href={getInvoiceDownloadUrl(orderComplete.orderId)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i className="fas fa-file-pdf" />
+                <span>Invoice (PDF)</span>
+              </a>
+              {user && (
+                <Link to="/account?tab=orders" className="btn btn-outline">
+                  <i className="fas fa-box" />
+                  <span>View My Orders</span>
+                </Link>
+              )}
             </div>
+            <p className="checkout-note checkout-email-note">
+              <i className="fas fa-envelope" /> A copy of your invoice has been emailed to{' '}
+              <strong>{orderComplete.email}</strong>.
+            </p>
           </div>
         </div>
       </section>
@@ -273,6 +285,24 @@ export default function PaymentPage() {
                     placeholder="+90 555 555 55 55"
                   />
                   {visibleErrors.phone && <span className="field-error">{visibleErrors.phone}</span>}
+                </label>
+
+                <label className="field-group field-group-full">
+                  <span className="field-label">
+                    Email
+                    {user?.email && <span className="field-hint"> · from your account</span>}
+                  </span>
+                  <input
+                    className={`field-input${visibleErrors.email ? ' invalid' : ''}`}
+                    type="email"
+                    name="email"
+                    value={address.email}
+                    onChange={handleAddressChange}
+                    onBlur={handleBlur}
+                    placeholder="you@example.com"
+                    readOnly={Boolean(user?.email)}
+                  />
+                  {visibleErrors.email && <span className="field-error">{visibleErrors.email}</span>}
                 </label>
 
                 <label className="field-group field-group-full">

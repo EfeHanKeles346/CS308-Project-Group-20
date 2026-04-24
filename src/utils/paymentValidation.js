@@ -16,10 +16,17 @@ export function normalizeCvv(value = '') {
   return value.replace(/\D/g, '').slice(0, 3);
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function validateAddress(address) {
   const errors = {};
 
   if (!address.fullName.trim()) errors.fullName = 'Full name is required.';
+  if (!address.email || !address.email.trim()) {
+    errors.email = 'Email is required.';
+  } else if (!EMAIL_PATTERN.test(address.email.trim())) {
+    errors.email = 'Enter a valid email address.';
+  }
   if (!address.phone.trim()) errors.phone = 'Phone number is required.';
   if (!address.line1.trim()) errors.line1 = 'Address line is required.';
   if (!address.city.trim()) errors.city = 'City is required.';
