@@ -1,30 +1,51 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function WishlistPage() {
-  const { items, addToWishlist, removeFromWishlist } = useWishlist();
+  const { items, loading, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
-  const [displayItems, setDisplayItems] = useState([]);
-  const [removed, setRemoved] = useState({});
+  const { isLoggedIn } = useAuth();
+  const { showToast } = useToast();
 
-  useEffect(() => {
-    setDisplayItems((prev) => {
-      const existingIds = prev.map((p) => p.id);
-      const newItems = items.filter((p) => !existingIds.includes(p.id));
-      return [...prev, ...newItems];
-    });
-  }, [items]);
-
-  const handleToggle = (item) => {
-    const isRemoved = removed[item.id];
-    setRemoved((prev) => ({ ...prev, [item.id]: !isRemoved }));
-    if (isRemoved) addToWishlist(item);
-    else removeFromWishlist(item.id);
+  const handleRemove = async (item) => {
+    const result = await removeFromWishlist(item.id);
+    showToast(result.success ? 'Removed from wishlist.' : result.error, result.success ? 'error' : 'error');
   };
 
-  if (displayItems.length === 0) {
+  if (!isLoggedIn) {
+    return (
+      <section className="cart-page section">
+        <div className="container">
+          <div className="empty-state">
+            <i className="fas fa-lock" />
+            <h3>Sign in to view your wishlist</h3>
+            <p>Wishlist is available for registered users only.</p>
+            <Link to="/" className="btn btn-primary" style={{ marginTop: '20px', display: 'inline-flex' }}>
+              <i className="fas fa-arrow-left" /> <span>Continue Shopping</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (loading) {
+    return (
+      <section className="cart-page section">
+        <div className="container">
+          <div className="empty-state">
+            <i className="fas fa-spinner fa-spin" />
+            <h3>Loading wishlist</h3>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (items.length === 0) {
     return (
       <section className="cart-page section">
         <div className="container">
@@ -41,18 +62,16 @@ export default function WishlistPage() {
     );
   }
 
-  const activeCount = displayItems.filter((p) => !removed[p.id]).length;
-
   return (
     <section className="cart-page section">
       <div className="container">
         <div className="cart-header">
           <h2 className="section-title">Wishlist</h2>
-          <p className="section-sub">{activeCount} item{activeCount !== 1 ? 's' : ''} saved</p>
+          <p className="section-sub">{items.length} item{items.length !== 1 ? 's' : ''} saved</p>
         </div>
 
         <div className="cart-items">
-          {displayItems.map((item) => (
+          {items.map((item) => (
             <div className="cart-item" key={item.id}>
               <div className="cart-item-image">
                 <img src={item.img} alt={item.name} loading="lazy" />
@@ -73,12 +92,12 @@ export default function WishlistPage() {
                   <i className="fas fa-shopping-bag" /> Add to Cart
                 </button>
                 <button
-                  className={`wishlist-btn${removed[item.id] ? '' : ' active'}`}
-                  onClick={() => handleToggle(item)}
+                  className="wishlist-btn active"
+                  onClick={() => handleRemove(item)}
                   aria-label={`Remove ${item.name} from wishlist`}
                   style={{ position: 'relative', top: 'auto', right: 'auto' }}
                 >
-                  <i className={`${removed[item.id] ? 'far' : 'fas'} fa-heart`} />
+                  <i className="fas fa-heart" />
                 </button>
               </div>
             </div>

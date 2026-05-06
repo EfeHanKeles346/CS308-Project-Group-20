@@ -118,7 +118,7 @@ public class InvoiceService {
 
         Paragraph statusLine = new Paragraph();
         statusLine.setAlignment(Element.ALIGN_RIGHT);
-        String statusText = order.getStatus() == null ? "PAID" : order.getStatus();
+        String statusText = order.getStatus() == null ? "PROCESSING" : order.getStatus();
         statusLine.add(new Phrase("Status   ", font(9f, Font.NORMAL, MUTED)));
         statusLine.add(new Phrase(statusText, font(10f, Font.BOLD, GREEN)));
         statusLine.setSpacingBefore(4f);

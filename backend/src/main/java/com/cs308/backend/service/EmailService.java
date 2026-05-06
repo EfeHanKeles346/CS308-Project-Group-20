@@ -96,7 +96,7 @@ public class EmailService {
         html.append("<table style=\"width:100%;border-collapse:collapse;margin-bottom:20px;")
             .append("background:#f8f9fb;border-radius:12px;\">");
         appendInfoRow(html, "Order", "#" + shortId(order.getOrderId()));
-        appendInfoRow(html, "Status", (order.getStatus() == null ? "PAID" : order.getStatus()));
+        appendInfoRow(html, "Status", (order.getStatus() == null ? "PROCESSING" : order.getStatus()));
         appendInfoRow(html, "Total", MONEY.format(order.getTotalPrice()));
         html.append("</table>");
 

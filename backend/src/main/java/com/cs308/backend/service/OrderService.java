@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -21,6 +23,14 @@ import java.util.concurrent.ExecutionException;
 public class OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+    private static final String STATUS_PROCESSING = "PROCESSING";
+    private static final String STATUS_IN_TRANSIT = "IN_TRANSIT";
+    private static final String STATUS_DELIVERED = "DELIVERED";
+    private static final Set<String> VALID_STATUSES = Set.of(
+        STATUS_PROCESSING,
+        STATUS_IN_TRANSIT,
+        STATUS_DELIVERED
+    );
 
     private final Firestore firestore;
     private final InvoiceService invoiceService;
@@ -53,7 +63,7 @@ public class OrderService {
 
         order.setOrderId(UUID.randomUUID().toString());
         order.setCreatedAt(System.currentTimeMillis());
-        order.setStatus("PAID");
+        order.setStatus(STATUS_PROCESSING);
         order.setTotalPrice(total);
 
         decrementStockAtomically(order);
@@ -84,7 +94,7 @@ public class OrderService {
         if (!snapshot.exists()) {
             return null;
         }
-        return snapshot.toObject(Order.class);
+        return normalizeOrder(snapshot.toObject(Order.class));
     }
 
     public byte[] getInvoicePdf(String orderId) throws ExecutionException, InterruptedException {
@@ -153,8 +163,34 @@ public class OrderService {
 
         List<Order> orders = new ArrayList<>();
         for (QueryDocumentSnapshot doc : docs) {
-            orders.add(doc.toObject(Order.class));
+            orders.add(normalizeOrder(doc.toObject(Order.class)));
         }
         return orders;
+    }
+
+    private Order normalizeOrder(Order order) {
+        if (order == null) return null;
+        order.setStatus(normalizeStatus(order.getStatus()));
+        return order;
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return STATUS_PROCESSING;
+        }
+
+        String normalized = status.trim()
+            .replace('-', '_')
+            .replace(' ', '_')
+            .toUpperCase(Locale.ROOT);
+
+        if ("PAID".equals(normalized)) {
+            return STATUS_PROCESSING;
+        }
+        if ("SHIPPED".equals(normalized)) {
+            return STATUS_IN_TRANSIT;
+        }
+
+        return VALID_STATUSES.contains(normalized) ? normalized : STATUS_PROCESSING;
     }
 }

@@ -2,12 +2,22 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchUserOrders, getInvoiceDownloadUrl } from '../services/api';
 
 const STATUS_STYLES = {
-  PAID: { label: 'Paid', className: 'order-status order-status-paid', icon: 'fa-circle-check' },
   PROCESSING: { label: 'Processing', className: 'order-status order-status-processing', icon: 'fa-gears' },
-  SHIPPED: { label: 'Shipped', className: 'order-status order-status-shipped', icon: 'fa-truck-fast' },
+  IN_TRANSIT: { label: 'In Transit', className: 'order-status order-status-in-transit', icon: 'fa-truck-fast' },
   DELIVERED: { label: 'Delivered', className: 'order-status order-status-delivered', icon: 'fa-box-open' },
-  CANCELLED: { label: 'Cancelled', className: 'order-status order-status-cancelled', icon: 'fa-ban' },
 };
+
+function normalizeStatus(status) {
+  const normalized = String(status || 'PROCESSING')
+    .trim()
+    .replaceAll('-', '_')
+    .replaceAll(' ', '_')
+    .toUpperCase();
+
+  if (normalized === 'PAID') return 'PROCESSING';
+  if (normalized === 'SHIPPED') return 'IN_TRANSIT';
+  return STATUS_STYLES[normalized] ? normalized : 'PROCESSING';
+}
 
 function formatDate(ms) {
   if (!ms) return '';
@@ -34,8 +44,8 @@ function currency(amount) {
 function OrderCard({ order }) {
   const [expanded, setExpanded] = useState(false);
 
-  const statusKey = (order.status || 'PAID').toUpperCase();
-  const status = STATUS_STYLES[statusKey] || STATUS_STYLES.PAID;
+  const statusKey = normalizeStatus(order.status);
+  const status = STATUS_STYLES[statusKey];
   const items = Array.isArray(order.items) ? order.items : [];
   const visibleItems = expanded ? items : items.slice(0, 2);
   const hiddenCount = items.length - visibleItems.length;

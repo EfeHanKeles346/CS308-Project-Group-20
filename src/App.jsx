@@ -85,7 +85,7 @@ function CartAndWishlistProviders({ children }) {
 
   return (
     <CartProvider user={user}>
-      <WishlistProvider>
+      <WishlistProvider user={user}>
         {children}
       </WishlistProvider>
     </CartProvider>

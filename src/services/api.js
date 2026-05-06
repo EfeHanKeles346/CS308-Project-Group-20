@@ -121,8 +121,45 @@ export async function removeFromCartAPI() {
   return { success: true, message: 'Product removed from cart.' };
 }
 
-export async function toggleWishlistAPI() {
-  return { success: true };
+export async function fetchWishlist(email) {
+  if (!email) {
+    return { success: false, error: 'Please sign in to view your wishlist.' };
+  }
+
+  const result = await request(`/wishlist/${encodeURIComponent(email)}`);
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    items: Array.isArray(result.data) ? result.data : [],
+  };
+}
+
+export async function addToWishlistAPI(email, productId) {
+  if (!email) {
+    return { success: false, error: 'Please sign in to add items to your wishlist.' };
+  }
+
+  const result = await request('/wishlist/add', {
+    method: 'POST',
+    body: JSON.stringify({ userEmail: email, productId }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, data: result.data };
+}
+
+export async function removeFromWishlistAPI(email, productId) {
+  if (!email) {
+    return { success: false, error: 'Please sign in to update your wishlist.' };
+  }
+
+  const result = await request(`/wishlist/remove/${encodeURIComponent(productId)}?email=${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+  });
+  if (!result.success) return result;
+
+  return { success: true, data: result.data };
 }
 
 export async function createOrder(orderPayload) {
@@ -154,5 +191,73 @@ export async function fetchUserOrders(email) {
   return {
     success: true,
     orders: Array.isArray(result.data) ? result.data : [],
+  };
+}
+
+export async function fetchProductComments(productId) {
+  if (!productId) {
+    return { success: false, error: 'Product is required.' };
+  }
+
+  const result = await request(`/comments/product/${encodeURIComponent(productId)}`);
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    comments: Array.isArray(result.data) ? result.data : [],
+  };
+}
+
+export async function submitProductComment({ productId, userEmail, userName, text }) {
+  if (!productId) {
+    return { success: false, error: 'Product is required.' };
+  }
+  if (!userEmail) {
+    return { success: false, error: 'Please sign in to comment.' };
+  }
+
+  const result = await request(`/comments/product/${encodeURIComponent(productId)}`, {
+    method: 'POST',
+    body: JSON.stringify({ userEmail, userName, text }),
+  });
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    data: result.data,
+  };
+}
+
+export async function fetchProductRatingSummary(productId) {
+  if (!productId) {
+    return { success: false, error: 'Product is required.' };
+  }
+
+  const result = await request(`/ratings/product/${encodeURIComponent(productId)}`);
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    summary: result.data,
+  };
+}
+
+export async function submitProductRating({ productId, userEmail, userName, rating }) {
+  if (!productId) {
+    return { success: false, error: 'Product is required.' };
+  }
+  if (!userEmail) {
+    return { success: false, error: 'Please sign in to rate this product.' };
+  }
+
+  const result = await request(`/ratings/product/${encodeURIComponent(productId)}`, {
+    method: 'POST',
+    body: JSON.stringify({ userEmail, userName, rating }),
+  });
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    summary: result.data,
   };
 }

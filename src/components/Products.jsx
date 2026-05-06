@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useProducts } from '../context/ProductsContext';
+import { useAuth } from '../context/AuthContext';
 
 const tabs = ['All', 'Best Sellers', 'New', 'On Sale'];
 const sortOptions = [
@@ -23,13 +24,13 @@ function StarIcon({ value }) {
 
 export default function Products({ searchQuery = '', selectedCategory = null, onCategorySelect }) {
   const [activeTab, setActiveTab] = useState('All');
-  const [wishlisted, setWishlisted] = useState({});
   const [sortBy, setSortBy] = useState('default');
   const [addedMap, setAddedMap] = useState({});
   const { showToast } = useToast();
   const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist } = useWishlist();
+  const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
   const { products, loading, error } = useProducts();
+  const { isLoggedIn } = useAuth();
   const headerRef = useReveal();
 
   const visibleTab = selectedCategory === 'deals' ? 'On Sale' : activeTab;
@@ -74,14 +75,22 @@ export default function Products({ searchQuery = '', selectedCategory = null, on
     return result;
   }, [products, searchQuery, selectedCategory, sortBy, visibleTab]);
 
-  const toggleWishlist = (product) => {
-    const next = !wishlisted[product.id];
-    setWishlisted((prev) => ({ ...prev, [product.id]: next }));
-    if (next) addToWishlist(product);
-    else removeFromWishlist(product.id);
+  const toggleWishlist = async (product) => {
+    if (!isLoggedIn) {
+      showToast('Please sign in to use your wishlist.', 'error');
+      return;
+    }
+
+    const next = !isWishlisted(product.id);
+    const result = next
+      ? await addToWishlist(product)
+      : await removeFromWishlist(product.id);
+
     showToast(
-      next ? 'Added to wishlist!' : 'Removed from wishlist.',
-      next ? 'success' : 'error'
+      result.success
+        ? (next ? 'Added to wishlist!' : 'Removed from wishlist.')
+        : result.error,
+      result.success ? (next ? 'success' : 'error') : 'error'
     );
   };
 
@@ -153,7 +162,7 @@ export default function Products({ searchQuery = '', selectedCategory = null, on
               <ProductCard
                 key={product.id}
                 product={product}
-                isWishlisted={!!wishlisted[product.id]}
+                isWishlisted={isWishlisted(product.id)}
                 isAdded={!!addedMap[product.id]}
                 onToggleWishlist={() => toggleWishlist(product)}
                 onAddToCart={() => handleAddToCart(product)}

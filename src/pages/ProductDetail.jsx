@@ -1,7 +1,15 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductsContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import {
+  fetchProductComments,
+  fetchProductRatingSummary,
+  submitProductComment,
+  submitProductRating,
+} from '../services/api';
 
 function StarIcon({ value }) {
   if (value === 1) return <i className="fas fa-star" />;
@@ -9,12 +17,106 @@ function StarIcon({ value }) {
   return <i className="far fa-star" />;
 }
 
+function formatCommentDate(ms) {
+  if (!ms) return '';
+  return new Date(ms).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function userInitials(name) {
+  return String(name || 'U')
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'U';
+}
+
+function ratingLabel(value) {
+  return `${value} star${value !== 1 ? 's' : ''}`;
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const { products, loading, error } = useProducts();
   const product = products.find((item) => item.id === Number(id));
+  const productId = product?.productId || (id ? String(id) : '');
   const { addToCart } = useCart();
+  const { user, isLoggedIn } = useAuth();
+  const { showToast } = useToast();
   const [added, setAdded] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentsStatus, setCommentsStatus] = useState('idle');
+  const [commentsError, setCommentsError] = useState(null);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentNotice, setCommentNotice] = useState('');
+  const [ratingSummary, setRatingSummary] = useState({ averageRating: 0, ratingCount: 0 });
+  const [ratingStatus, setRatingStatus] = useState('idle');
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingNotice, setRatingNotice] = useState('');
+
+  useEffect(() => {
+    if (!productId) return undefined;
+
+    let cancelled = false;
+
+    async function loadComments() {
+      setCommentsStatus('loading');
+      setCommentsError(null);
+
+      const result = await fetchProductComments(productId);
+      if (cancelled) return;
+
+      if (!result.success) {
+        setComments([]);
+        setCommentsError(result.error || 'Comments could not be loaded.');
+        setCommentsStatus('error');
+        return;
+      }
+
+      setComments(result.comments);
+      setCommentsStatus('loaded');
+    }
+
+    loadComments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
+
+  useEffect(() => {
+    if (!productId) return undefined;
+
+    let cancelled = false;
+
+    async function loadRatingSummary() {
+      setRatingStatus('loading');
+      const result = await fetchProductRatingSummary(productId);
+      if (cancelled) return;
+
+      if (result.success) {
+        setRatingSummary(result.summary);
+        setRatingStatus('loaded');
+      } else {
+        setRatingSummary({ averageRating: 0, ratingCount: 0 });
+        setRatingStatus('error');
+      }
+    }
+
+    loadRatingSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
 
   if (loading) {
     return (
@@ -52,6 +154,74 @@ export default function ProductDetail() {
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
   };
+
+  const handleSubmitComment = async (event) => {
+    event.preventDefault();
+
+    if (!isLoggedIn) {
+      showToast('Please sign in to comment.', 'error');
+      return;
+    }
+
+    const text = commentText.trim();
+    if (!text) {
+      showToast('Comment cannot be empty.', 'error');
+      return;
+    }
+
+    setSubmittingComment(true);
+    setCommentNotice('');
+    const result = await submitProductComment({
+      productId,
+      userEmail: user.email,
+      userName: user.name,
+      text,
+    });
+    setSubmittingComment(false);
+
+    if (!result.success) {
+      showToast(result.error || 'Comment could not be submitted.', 'error');
+      return;
+    }
+
+    setCommentText('');
+    setCommentNotice('Your comment is pending approval.');
+    showToast('Comment submitted for review.', 'success');
+  };
+
+  const handleSubmitRating = async (event) => {
+    event.preventDefault();
+
+    if (!isLoggedIn) {
+      showToast('Please sign in to rate this product.', 'error');
+      return;
+    }
+    if (selectedRating < 1 || selectedRating > 5) {
+      showToast('Select a rating between 1 and 5.', 'error');
+      return;
+    }
+
+    setSubmittingRating(true);
+    setRatingNotice('');
+    const result = await submitProductRating({
+      productId,
+      userEmail: user.email,
+      userName: user.name,
+      rating: selectedRating,
+    });
+    setSubmittingRating(false);
+
+    if (!result.success) {
+      showToast(result.error || 'Rating could not be saved.', 'error');
+      return;
+    }
+
+    setRatingSummary(result.summary);
+    setRatingNotice('Your rating has been saved.');
+    showToast('Rating saved.', 'success');
+  };
+
+  const displayRating = hoverRating || selectedRating;
 
   return (
     <section className="product-detail-page section">
@@ -124,6 +294,119 @@ export default function ProductDetail() {
               <div className="pd-feature"><i className="fas fa-truck-fast" /><span>Free shipping</span></div>
               <div className="pd-feature"><i className="fas fa-rotate-left" /><span>14-day returns</span></div>
               <div className="pd-feature"><i className="fas fa-shield-halved" /><span>Secure payment</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pd-rating-panel">
+          <div className="pd-rating-copy">
+            <p className="checkout-kicker">Verified rating</p>
+            <h2>
+              {ratingSummary.ratingCount > 0
+                ? `${Number(ratingSummary.averageRating || 0).toFixed(1)} / 5`
+                : 'No verified ratings yet'}
+            </h2>
+            <span>
+              {ratingStatus === 'loading'
+                ? 'Loading ratings'
+                : `${ratingSummary.ratingCount || 0} delivered customer rating${ratingSummary.ratingCount === 1 ? '' : 's'}`}
+            </span>
+          </div>
+
+          <form className="pd-rating-form" onSubmit={handleSubmitRating}>
+            <div className="pd-rating-stars" role="radiogroup" aria-label="Rate this product">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={value <= displayRating ? 'is-active' : ''}
+                  onClick={() => {
+                    setSelectedRating(value);
+                    if (ratingNotice) setRatingNotice('');
+                  }}
+                  onMouseEnter={() => setHoverRating(value)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  aria-label={ratingLabel(value)}
+                  aria-checked={selectedRating === value}
+                  role="radio"
+                >
+                  <i className="fas fa-star" />
+                </button>
+              ))}
+            </div>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={submittingRating}>
+              <i className={`fas ${submittingRating ? 'fa-spinner fa-spin' : 'fa-star'}`} />
+              <span>{submittingRating ? 'Saving' : 'Save rating'}</span>
+            </button>
+            {ratingNotice && <p className="pd-comment-notice">{ratingNotice}</p>}
+          </form>
+        </div>
+
+        <div className="pd-comments">
+          <div className="pd-comments-header">
+            <div>
+              <p className="checkout-kicker">Customer comments</p>
+              <h2>Accepted comments</h2>
+            </div>
+            <span>{comments.length} visible</span>
+          </div>
+
+          <div className="pd-comments-layout">
+            <form className="pd-comment-form" onSubmit={handleSubmitComment}>
+              <label htmlFor="productComment">Leave a comment</label>
+              <textarea
+                id="productComment"
+                value={commentText}
+                onChange={(event) => {
+                  setCommentText(event.target.value);
+                  if (commentNotice) setCommentNotice('');
+                }}
+                rows={5}
+                maxLength={1000}
+                placeholder={isLoggedIn ? 'Share your experience after delivery' : 'Sign in to comment'}
+                disabled={submittingComment}
+              />
+              <div className="pd-comment-form-footer">
+                <span>{commentText.length}/1000</span>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submittingComment}>
+                  <i className={`fas ${submittingComment ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`} />
+                  <span>{submittingComment ? 'Submitting' : 'Submit'}</span>
+                </button>
+              </div>
+              {commentNotice && <p className="pd-comment-notice">{commentNotice}</p>}
+            </form>
+
+            <div className="pd-comment-list">
+              {commentsStatus === 'loading' && (
+                <div className="pd-comment-empty">
+                  <i className="fas fa-spinner fa-spin" />
+                  <span>Loading comments</span>
+                </div>
+              )}
+              {commentsStatus === 'error' && (
+                <div className="pd-comment-empty">
+                  <i className="fas fa-triangle-exclamation" />
+                  <span>{commentsError}</span>
+                </div>
+              )}
+              {commentsStatus === 'loaded' && comments.length === 0 && (
+                <div className="pd-comment-empty">
+                  <i className="far fa-comment" />
+                  <span>No accepted comments yet</span>
+                </div>
+              )}
+              {commentsStatus === 'loaded' && comments.map((comment) => (
+                <article className="pd-comment" key={comment.commentId}>
+                  <div className="pd-comment-avatar">{userInitials(comment.userName)}</div>
+                  <div>
+                    <div className="pd-comment-meta">
+                      <strong>{comment.userName || 'Customer'}</strong>
+                      <span>{formatCommentDate(comment.createdAt)}</span>
+                    </div>
+                    <p>{comment.text}</p>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </div>

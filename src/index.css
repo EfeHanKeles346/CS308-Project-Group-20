@@ -840,6 +840,90 @@ ul { list-style: none; }
   color: var(--text-secondary);
 }
 .pd-feature i { color: var(--cyan); font-size: 14px; width: 20px; text-align: center; }
+.pd-rating-panel {
+  margin-top: 48px; padding: 22px; border: 1px solid var(--border);
+  border-radius: var(--radius-lg); background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-sm); display: flex; align-items: center;
+  justify-content: space-between; gap: 24px;
+}
+.pd-rating-copy h2 { font-size: 24px; line-height: 1.2; margin-bottom: 6px; }
+.pd-rating-copy > span { font-size: 13px; color: var(--text-tertiary); }
+.pd-rating-form {
+  display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap;
+}
+.pd-rating-stars { display: flex; align-items: center; gap: 4px; }
+.pd-rating-stars button {
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 50%; background: var(--bg-primary);
+  color: var(--text-tertiary); cursor: pointer; transition: all var(--transition);
+}
+.pd-rating-stars button:hover,
+.pd-rating-stars button.is-active {
+  color: var(--orange); border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+}
+.pd-comments {
+  margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border);
+}
+.pd-comments-header {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  margin-bottom: 20px;
+}
+.pd-comments-header h2 { font-size: 22px; line-height: 1.2; }
+.pd-comments-header > span {
+  font-size: 12px; font-weight: 700; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.pd-comments-layout {
+  display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 24px; align-items: start;
+}
+.pd-comment-form,
+.pd-comment,
+.pd-comment-empty {
+  border: 1px solid var(--border); background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-sm); border-radius: var(--radius-lg);
+}
+.pd-comment-form { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.pd-comment-form label {
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+}
+.pd-comment-form textarea {
+  width: 100%; resize: vertical; min-height: 120px; border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 12px 14px; font: inherit;
+  color: var(--text-primary); background: var(--bg-primary); line-height: 1.5;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.pd-comment-form textarea:focus {
+  outline: none; border-color: rgba(8, 145, 178, 0.45); box-shadow: 0 0 0 4px var(--cyan-dim);
+}
+.pd-comment-form-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.pd-comment-form-footer > span,
+.pd-comment-notice { font-size: 12px; color: var(--text-tertiary); }
+.pd-comment-notice { color: var(--green); font-weight: 600; margin-top: 2px; }
+.pd-comment-list { display: flex; flex-direction: column; gap: 14px; }
+.pd-comment {
+  display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 14px; padding: 18px;
+}
+.pd-comment-avatar {
+  width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--gradient-primary); color: white; font-size: 13px; font-weight: 800;
+}
+.pd-comment-meta {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px;
+}
+.pd-comment-meta strong { font-size: 14px; color: var(--text-primary); }
+.pd-comment-meta span { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+.pd-comment p {
+  color: var(--text-secondary); font-size: 14px; line-height: 1.6; word-break: break-word;
+}
+.pd-comment-empty {
+  min-height: 120px; padding: 24px; display: flex; align-items: center; justify-content: center;
+  gap: 10px; color: var(--text-tertiary); font-size: 14px; text-align: center;
+}
+.pd-comment-empty i { color: var(--cyan); }
 
 /* ======================== ERROR BOUNDARY ======================== */
 .error-boundary {
@@ -1022,6 +1106,9 @@ ul { list-style: none; }
   .cart-layout { grid-template-columns: 1fr; }
   .cart-summary { position: static; }
   .pd-layout { grid-template-columns: 1fr; gap: 32px; }
+  .pd-rating-panel { flex-direction: column; align-items: flex-start; }
+  .pd-rating-form { justify-content: flex-start; }
+  .pd-comments-layout { grid-template-columns: 1fr; }
   .checkout-grid,
   .account-layout,
   .checkout-success-meta { grid-template-columns: 1fr; }
@@ -1035,6 +1122,8 @@ ul { list-style: none; }
   .checkout-header { flex-direction: column; align-items: flex-start; }
   .checkout-form-grid { grid-template-columns: 1fr; }
   .checkout-success-actions { flex-direction: column; }
+  .pd-comments-header,
+  .pd-comment-meta { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
 
 /* ======================== ACCOUNT NAV ======================== */
@@ -1117,11 +1206,9 @@ ul { list-style: none; }
   font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
   white-space: nowrap;
 }
-.order-status-paid { background: rgba(16, 185, 129, 0.12); color: var(--green); }
 .order-status-processing { background: rgba(245, 158, 11, 0.12); color: var(--orange); }
-.order-status-shipped { background: rgba(8, 145, 178, 0.12); color: var(--cyan); }
+.order-status-in-transit { background: rgba(8, 145, 178, 0.12); color: var(--cyan); }
 .order-status-delivered { background: rgba(124, 58, 237, 0.12); color: var(--purple); }
-.order-status-cancelled { background: rgba(239, 68, 68, 0.12); color: var(--red); }
 
 .order-card-items {
   display: flex; flex-direction: column; gap: 12px;
