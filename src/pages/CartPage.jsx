@@ -1,8 +1,16 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
-export default function CartPage() {
+export default function CartPage({ onOpenModal }) {
   const { items, cartCount, cartTotal, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { isLoggedIn } = useAuth();
+
+  const handleCheckoutClick = () => {
+    if (!isLoggedIn) {
+      onOpenModal?.('login');
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -88,10 +96,22 @@ export default function CartPage() {
               <span>Total</span>
               <span>${cartTotal.toLocaleString()}</span>
             </div>
-            <Link to="/checkout" className="btn btn-primary btn-full" style={{ marginTop: '16px' }}>
-              <span>Proceed to Checkout</span>
-              <i className="fas fa-arrow-right" />
-            </Link>
+            {isLoggedIn ? (
+              <Link to="/checkout" className="btn btn-primary btn-full" style={{ marginTop: '16px' }}>
+                <span>Proceed to Checkout</span>
+                <i className="fas fa-arrow-right" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary btn-full"
+                style={{ marginTop: '16px' }}
+                onClick={handleCheckoutClick}
+              >
+                <span>Proceed to Checkout</span>
+                <i className="fas fa-arrow-right" />
+              </button>
+            )}
             <button className="cart-clear-btn" onClick={clearCart}>
               <i className="fas fa-trash" /> Clear Cart
             </button>

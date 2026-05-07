@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -19,7 +19,16 @@ import WishlistPage from './pages/WishlistPage';
 import PaymentPage from './pages/PaymentPage';
 import UserPage from './pages/UserPage';
 
+function CheckoutLoginGate({ onOpenModal }) {
+  useEffect(() => {
+    onOpenModal('login');
+  }, [onOpenModal]);
+
+  return <Navigate to="/cart" replace />;
+}
+
 function AppContent() {
+  const { isLoggedIn } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState('login');
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,8 +76,11 @@ function AppContent() {
             )}
           />
           <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<PaymentPage />} />
+          <Route path="/cart" element={<CartPage onOpenModal={openModal} />} />
+          <Route
+            path="/checkout"
+            element={isLoggedIn ? <PaymentPage /> : <CheckoutLoginGate onOpenModal={openModal} />}
+          />
           <Route path="/account" element={<UserPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
         </Routes>

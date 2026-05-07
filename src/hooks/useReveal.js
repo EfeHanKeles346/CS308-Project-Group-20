@@ -1,11 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export default function useReveal() {
-  const ref = useRef(null);
+  const observerRef = useRef(null);
 
-  useEffect(() => {
-    const el = ref.current;
+  const disconnectObserver = useCallback(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+  }, []);
+
+  const revealRef = useCallback((el) => {
+    disconnectObserver();
     if (!el) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      el.classList.add('visible');
+      return;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -34,8 +46,10 @@ export default function useReveal() {
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    observerRef.current = observer;
+  }, [disconnectObserver]);
 
-  return ref;
+  useEffect(() => disconnectObserver, [disconnectObserver]);
+
+  return revealRef;
 }
