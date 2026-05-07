@@ -27,30 +27,38 @@ public class EmailService {
     private final String fromAddress;
     private final String storeName;
     private final String configuredUsername;
+    private final String configuredPassword;
 
     public EmailService(
             JavaMailSender mailSender,
             @Value("${spring.mail.username:}") String configuredUsername,
+            @Value("${spring.mail.password:}") String configuredPassword,
             @Value("${invoice.store.email:}") String storeEmail,
             @Value("${invoice.store.name:TechMind}") String storeName) {
         this.mailSender = mailSender;
         this.configuredUsername = configuredUsername;
+        this.configuredPassword = configuredPassword;
         this.storeName = storeName;
         this.fromAddress = pickSender(storeEmail, configuredUsername);
     }
 
     public boolean isConfigured() {
-        return configuredUsername != null && !configuredUsername.isBlank();
+        return configuredUsername != null && !configuredUsername.isBlank()
+            && configuredPassword != null && !configuredPassword.isBlank();
     }
 
-    public void sendInvoiceEmail(Order order, byte[] invoicePdf) {
+    public boolean sendInvoiceEmail(Order order, byte[] invoicePdf) {
         if (!isConfigured()) {
-            log.info("SMTP not configured — skipping invoice email for order {}", safeId(order));
-            return;
+            log.info("SMTP not configured - skipping invoice email for order {}", safeId(order));
+            return false;
         }
         if (order == null || order.getUserEmail() == null || order.getUserEmail().isBlank()) {
-            log.warn("Cannot send invoice — order or recipient missing");
-            return;
+            log.warn("Cannot send invoice - order or recipient missing");
+            return false;
+        }
+        if (invoicePdf == null || invoicePdf.length == 0) {
+            log.warn("Cannot send invoice - PDF attachment missing for order {}", safeId(order));
+            return false;
         }
 
         try {
@@ -63,7 +71,7 @@ public class EmailService {
                 helper.setFrom(fromAddress);
             }
             helper.setTo(order.getUserEmail());
-            helper.setSubject("Your " + storeName + " invoice · Order #" + shortId(order.getOrderId()));
+            helper.setSubject("Your " + storeName + " invoice - Order #" + shortId(order.getOrderId()));
             helper.setText(buildEmailBody(order), true);
 
             String filename = "invoice-" + shortId(order.getOrderId()) + ".pdf";
@@ -71,11 +79,13 @@ public class EmailService {
 
             mailSender.send(message);
             log.info("Invoice email sent to {} for order {}", order.getUserEmail(), shortId(order.getOrderId()));
+            return true;
         } catch (MessagingException ex) {
             log.error("Failed to send invoice email for order {}: {}", safeId(order), ex.getMessage());
         } catch (RuntimeException ex) {
             log.error("Unexpected error sending invoice email for order {}", safeId(order), ex);
         }
+        return false;
     }
 
     private String buildEmailBody(Order order) {
@@ -110,7 +120,7 @@ public class EmailService {
                     .append("<td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;\">")
                     .append("<strong>").append(escape(item.getProductName())).append("</strong><br>")
                     .append("<span style=\"color:#6b7280;font-size:12px;\">Qty ")
-                    .append(item.getQuantity()).append(" · ").append(MONEY.format(item.getUnitPrice()))
+                    .append(item.getQuantity()).append(" x ").append(MONEY.format(item.getUnitPrice()))
                     .append(" each</span></td>")
                     .append("<td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;")
                     .append("font-weight:700;\">").append(MONEY.format(line)).append("</td>")
@@ -142,7 +152,7 @@ public class EmailService {
     }
 
     private String shortId(String id) {
-        if (id == null || id.isBlank()) return "—";
+        if (id == null || id.isBlank()) return "-";
         return id.length() <= 10 ? id.toUpperCase(Locale.ROOT) : id.substring(0, 8).toUpperCase(Locale.ROOT);
     }
 

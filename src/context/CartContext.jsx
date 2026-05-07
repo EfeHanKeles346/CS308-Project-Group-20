@@ -52,7 +52,7 @@ export function CartProvider({ children, user }) {
 
     if (!user && nextOpenTabs === 1 && navigationType !== 'reload') {
       clearGuestCart();
-      queueMicrotask(() => setItems([]));
+      setItems([]);
     }
 
     const handleBeforeUnload = () => {
@@ -141,22 +141,23 @@ export function CartProvider({ children, user }) {
         });
     } else if (previousUserRef.current) {
       clearGuestCart();
-      queueMicrotask(() => setItems([]));
+      setItems([]);
     } else {
-      const hydratedGuestCart = readGuestCart()
-        .map((item) => {
-          const product = productMap.get(Number(item.id));
-          if (!product) {
-            return normalizeProduct(item);
-          }
-          return normalizeProduct({
-            ...product,
-            quantity: item.quantity,
-          });
-        })
-        .filter(Boolean);
-
-      queueMicrotask(() => setItems(hydratedGuestCart));
+      setItems((prev) => {
+        const sourceItems = prev.length > 0 ? prev : readGuestCart();
+        return sourceItems
+          .map((item) => {
+            const product = productMap.get(Number(item.id));
+            if (!product) {
+              return normalizeProduct(item);
+            }
+            return normalizeProduct({
+              ...product,
+              quantity: item.quantity,
+            });
+          })
+          .filter(Boolean);
+      });
     }
 
     previousUserRef.current = user;

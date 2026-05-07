@@ -32,6 +32,7 @@ describe('paymentValidation', () => {
   it('accepts complete address data', () => {
     expect(validateAddress({
       fullName: 'Jane Doe',
+      email: 'jane@example.com',
       phone: '+90 555 555 55 55',
       line1: 'Example street',
       line2: '',

@@ -72,17 +72,31 @@ public class OrderService {
         ref.set(order).get();
 
         clearUserCart(order.getUserEmail());
-        sendInvoiceEmailSafely(order);
+        boolean invoiceEmailSent = sendInvoiceEmailSafely(order);
+        order.setInvoiceEmailSent(invoiceEmailSent);
+        updateInvoiceEmailSentSafely(ref, order);
 
         return order;
     }
 
-    private void sendInvoiceEmailSafely(Order order) {
+    private boolean sendInvoiceEmailSafely(Order order) {
         try {
             byte[] pdf = invoiceService.buildInvoice(order);
-            emailService.sendInvoiceEmail(order, pdf);
+            return emailService.sendInvoiceEmail(order, pdf);
         } catch (RuntimeException ex) {
             log.error("Invoice email delivery failed for order {}: {}", order.getOrderId(), ex.getMessage());
+        }
+        return false;
+    }
+
+    private void updateInvoiceEmailSentSafely(DocumentReference ref, Order order) {
+        try {
+            ref.update("invoiceEmailSent", order.isInvoiceEmailSent()).get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while storing invoice email status for order {}", order.getOrderId());
+        } catch (ExecutionException ex) {
+            log.warn("Could not store invoice email status for order {}: {}", order.getOrderId(), ex.getMessage());
         }
     }
 

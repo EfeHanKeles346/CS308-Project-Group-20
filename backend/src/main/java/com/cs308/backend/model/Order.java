@@ -12,6 +12,7 @@ public class Order {
     private double totalPrice;
     private String status;
     private long createdAt;
+    private boolean invoiceEmailSent;
 
     public Order() {}
 
@@ -38,4 +39,7 @@ public class Order {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public boolean isInvoiceEmailSent() { return invoiceEmailSent; }
+    public void setInvoiceEmailSent(boolean invoiceEmailSent) { this.invoiceEmailSent = invoiceEmailSent; }
 }

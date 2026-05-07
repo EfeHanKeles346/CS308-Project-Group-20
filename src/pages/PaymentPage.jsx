@@ -143,6 +143,7 @@ export default function PaymentPage() {
       items,
       total: result.order.totalPrice ?? cartTotal,
       last4: cardDigits.slice(-4),
+      invoiceEmailSent: Boolean(result.order.invoiceEmailSent),
     });
 
     await clearCart();
@@ -202,10 +203,16 @@ export default function PaymentPage() {
                 </Link>
               )}
             </div>
-            <p className="checkout-note checkout-email-note">
-              <i className="fas fa-envelope" /> A copy of your invoice has been emailed to{' '}
-              <strong>{orderComplete.email}</strong>.
-            </p>
+            {orderComplete.invoiceEmailSent ? (
+              <p className="checkout-note checkout-email-note">
+                <i className="fas fa-envelope" /> A copy of your invoice has been emailed to{' '}
+                <strong>{orderComplete.email}</strong>.
+              </p>
+            ) : (
+              <p className="checkout-note checkout-email-note">
+                <i className="fas fa-envelope" /> Your invoice PDF is ready, but the email could not be sent.
+              </p>
+            )}
           </div>
         </div>
       </section>
