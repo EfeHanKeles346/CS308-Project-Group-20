@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,32 @@ public class ProductRatingController {
             throws ExecutionException, InterruptedException {
         validateProduct(productId);
         return buildRatingSummary(productId);
+    }
+
+    @GetMapping("/product/{productId}/user")
+    public Map<String, Object> getUserRating(
+            @PathVariable String productId,
+            @RequestParam String email) throws ExecutionException, InterruptedException {
+        validateProduct(productId);
+
+        String userEmail = Objects.toString(email, "").trim();
+        if (userEmail.isBlank()) {
+            throw new IllegalArgumentException("Please sign in to rate this product.");
+        }
+
+        DocumentSnapshot snapshot = firestore.collection("productRatings")
+            .document(productId)
+            .collection("items")
+            .document(ratingDocumentId(userEmail))
+            .get()
+            .get();
+
+        int rating = snapshot.exists() ? readRating(snapshot.get("rating")) : 0;
+        return Map.of(
+            "productId", productId,
+            "userEmail", userEmail,
+            "rating", rating
+        );
     }
 
     @PostMapping("/product/{productId}")
@@ -81,7 +108,8 @@ public class ProductRatingController {
         ratingDoc.put("updatedAt", now);
         docRef.set(ratingDoc).get();
 
-        Map<String, Object> summary = buildRatingSummary(productId);
+        Map<String, Object> summary = new HashMap<>(buildRatingSummary(productId));
+        summary.put("userRating", rating);
         summary.put("message", "Rating saved.");
         return summary;
     }
@@ -99,6 +127,12 @@ public class ProductRatingController {
 
     private Map<String, Object> buildRatingSummary(String productId)
             throws ExecutionException, InterruptedException {
+        DocumentSnapshot productSnapshot = firestore.collection("products").document(productId).get().get();
+        double baseAverage = readDouble(productSnapshot.get("rating"));
+        int baseCount = readRatingCount(productSnapshot.get("reviews"));
+        double total = baseAverage * baseCount;
+        int count = baseCount;
+
         List<QueryDocumentSnapshot> docs = firestore.collection("productRatings")
             .document(productId)
             .collection("items")
@@ -106,8 +140,6 @@ public class ProductRatingController {
             .get()
             .getDocuments();
 
-        int count = 0;
-        double total = 0.0;
         for (QueryDocumentSnapshot doc : docs) {
             Object value = doc.get("rating");
             if (value instanceof Number number) {
@@ -123,7 +155,9 @@ public class ProductRatingController {
         return Map.of(
             "productId", productId,
             "averageRating", average,
-            "ratingCount", count
+            "ratingCount", count,
+            "baseAverageRating", baseAverage,
+            "baseRatingCount", baseCount
         );
     }
 
@@ -184,6 +218,23 @@ public class ProductRatingController {
         } catch (NumberFormatException exception) {
             return 0;
         }
+    }
+
+    private double readDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+
+        try {
+            return Double.parseDouble(Objects.toString(value, ""));
+        } catch (NumberFormatException exception) {
+            return 0.0;
+        }
+    }
+
+    private int readRatingCount(Object value) {
+        int count = readRating(value);
+        return Math.max(count, 0);
     }
 
     private String ratingDocumentId(String userEmail) {

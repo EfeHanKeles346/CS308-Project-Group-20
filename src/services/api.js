@@ -11,6 +11,15 @@ async function parseJsonSafe(response) {
   }
 }
 
+function getErrorMessage(payload, fallback = 'Request failed.') {
+  const candidates = [payload?.message, payload?.error, payload?.detail, payload?.title];
+  const message = candidates
+    .map((value) => String(value || '').trim())
+    .find((value) => value && value !== 'No message available' && value !== 'Internal Server Error');
+
+  return message || fallback;
+}
+
 async function request(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
     headers: {
@@ -25,7 +34,7 @@ async function request(path, options = {}) {
   if (!response.ok) {
     return {
       success: false,
-      error: payload.message || 'Request failed.',
+      error: getErrorMessage(payload),
     };
   }
 
@@ -239,6 +248,25 @@ export async function fetchProductRatingSummary(productId) {
   return {
     success: true,
     summary: result.data,
+  };
+}
+
+export async function fetchUserProductRating(productId, userEmail) {
+  if (!productId) {
+    return { success: false, error: 'Product is required.' };
+  }
+  if (!userEmail) {
+    return { success: false, error: 'Please sign in to rate this product.' };
+  }
+
+  const result = await request(
+    `/ratings/product/${encodeURIComponent(productId)}/user?email=${encodeURIComponent(userEmail)}`
+  );
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    rating: Number(result.data?.rating || 0),
   };
 }
 
