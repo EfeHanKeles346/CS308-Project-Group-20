@@ -50,6 +50,7 @@ function mapAuthUser(data) {
     uid: data.uid,
     name: data.displayName,
     email: data.email,
+    role: data.role || 'customer',
   };
 }
 
@@ -201,6 +202,100 @@ export async function fetchUserOrders(email) {
     success: true,
     orders: Array.isArray(result.data) ? result.data : [],
   };
+}
+
+export async function cancelOrder(orderId, userEmail) {
+  if (!orderId) {
+    return { success: false, error: 'Order is required.' };
+  }
+
+  const result = await request(`/orders/${encodeURIComponent(orderId)}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ userEmail }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, order: result.data };
+}
+
+export async function createRefundRequest(orderId, userEmail, reason) {
+  if (!orderId) {
+    return { success: false, error: 'Order is required.' };
+  }
+
+  const result = await request(`/orders/${encodeURIComponent(orderId)}/refund`, {
+    method: 'POST',
+    body: JSON.stringify({ userEmail, reason }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, refund: result.data };
+}
+
+export async function fetchSalesManagerProducts() {
+  const result = await request('/sales-manager/products');
+  if (!result.success) return result;
+
+  return { success: true, products: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function updateSalesManagerPrice(productId, price) {
+  const result = await request(`/sales-manager/products/${encodeURIComponent(productId)}/price`, {
+    method: 'PATCH',
+    body: JSON.stringify({ price }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, product: result.data };
+}
+
+export async function applySalesManagerDiscount(productId, discountPercent) {
+  const result = await request(`/sales-manager/products/${encodeURIComponent(productId)}/discount`, {
+    method: 'PATCH',
+    body: JSON.stringify({ discountPercent }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, product: result.data };
+}
+
+export async function fetchSalesManagerOrders(from, to) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', String(from));
+  if (to) params.set('to', String(to));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const result = await request(`/sales-manager/orders${query}`);
+  if (!result.success) return result;
+
+  return { success: true, orders: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function fetchSalesManagerRevenue(from, to) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', String(from));
+  if (to) params.set('to', String(to));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const result = await request(`/sales-manager/revenue${query}`);
+  if (!result.success) return result;
+
+  return { success: true, revenue: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function fetchRefundRequests() {
+  const result = await request('/sales-manager/refunds');
+  if (!result.success) return result;
+
+  return { success: true, refunds: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function decideRefundRequest(refundId, decision, note = '') {
+  const result = await request(`/sales-manager/refunds/${encodeURIComponent(refundId)}/decision`, {
+    method: 'POST',
+    body: JSON.stringify({ decision, note }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, refund: result.data };
 }
 
 export async function fetchProductComments(productId) {

@@ -52,6 +52,7 @@ public class AuthService {
             userProfile.put("lastName", request.lastName());
             userProfile.put("fullName", fullName);
             userProfile.put("phone", request.phone());
+            userProfile.put("role", "customer");
             userProfile.put("createdAt", System.currentTimeMillis());
 
             ApiFuture<com.google.cloud.firestore.WriteResult> writeFuture =
@@ -64,6 +65,7 @@ public class AuthService {
                 userRecord.getUid(),
                 userRecord.getEmail(),
                 userRecord.getDisplayName(),
+                "customer",
                 loginResponse.idToken(),
                 loginResponse.refreshToken(),
                 "User registered successfully"
@@ -80,16 +82,28 @@ public class AuthService {
 
         try {
             UserRecord userRecord = FirebaseAuth.getInstance().getUser(loginResponse.localId());
+            String role = readUserRole(userRecord.getUid());
             return new AuthResponse(
                 userRecord.getUid(),
                 userRecord.getEmail(),
                 userRecord.getDisplayName(),
+                role,
                 loginResponse.idToken(),
                 loginResponse.refreshToken(),
                 "Login successful"
             );
         } catch (FirebaseAuthException exception) {
             throw new IllegalStateException("Login succeeded but user lookup failed: " + exception.getMessage(), exception);
+        }
+    }
+
+    private String readUserRole(String uid) {
+        try {
+            var snapshot = firestore.collection("users").document(uid).get().get();
+            Object role = snapshot.exists() ? snapshot.get("role") : null;
+            return role == null || role.toString().isBlank() ? "customer" : role.toString();
+        } catch (Exception exception) {
+            return "customer";
         }
     }
 

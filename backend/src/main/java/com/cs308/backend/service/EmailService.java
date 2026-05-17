@@ -88,6 +88,69 @@ public class EmailService {
         return false;
     }
 
+    public boolean sendDiscountEmail(String recipient, String productName, double oldPrice, double newPrice, int discountPercent) {
+        if (!isConfigured()) {
+            log.info("SMTP not configured - skipping discount email for {}", recipient);
+            return false;
+        }
+        if (recipient == null || recipient.isBlank()) {
+            return false;
+        }
+
+        String subject = storeName + " wishlist deal: " + productName;
+        String body = "<!DOCTYPE html><html><body style=\"font-family:Inter,Arial,sans-serif;color:#111827;\">"
+            + "<h2>Your wishlist item is now on sale</h2>"
+            + "<p>" + escape(productName) + " has a new " + discountPercent + "% discount.</p>"
+            + "<p><strong>Old price:</strong> " + MONEY.format(oldPrice)
+            + "<br><strong>New price:</strong> " + MONEY.format(newPrice) + "</p>"
+            + "<p>Visit " + escape(storeName) + " to complete your order.</p>"
+            + "</body></html>";
+
+        return sendSimpleHtml(recipient, subject, body);
+    }
+
+    public boolean sendRefundDecisionEmail(String recipient, String orderId, String decision, String note) {
+        if (!isConfigured()) {
+            log.info("SMTP not configured - skipping refund decision email for order {}", orderId);
+            return false;
+        }
+        if (recipient == null || recipient.isBlank()) {
+            return false;
+        }
+
+        String normalizedDecision = decision == null ? "updated" : decision.toLowerCase(Locale.ROOT);
+        String subject = storeName + " refund request " + normalizedDecision + " - Order #" + shortId(orderId);
+        String body = "<!DOCTYPE html><html><body style=\"font-family:Inter,Arial,sans-serif;color:#111827;\">"
+            + "<h2>Your refund request was " + escape(normalizedDecision) + "</h2>"
+            + "<p>Order #" + escape(shortId(orderId)) + " has been reviewed by our sales team.</p>"
+            + (note == null || note.isBlank() ? "" : "<p><strong>Note:</strong> " + escape(note) + "</p>")
+            + "</body></html>";
+
+        return sendSimpleHtml(recipient, subject, body);
+    }
+
+    private boolean sendSimpleHtml(String recipient, String subject, String html) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            try {
+                helper.setFrom(fromAddress, storeName);
+            } catch (UnsupportedEncodingException ex) {
+                helper.setFrom(fromAddress);
+            }
+            helper.setTo(recipient);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            mailSender.send(message);
+            return true;
+        } catch (MessagingException ex) {
+            log.error("Failed to send email to {}: {}", recipient, ex.getMessage());
+        } catch (RuntimeException ex) {
+            log.error("Unexpected error sending email to {}", recipient, ex);
+        }
+        return false;
+    }
+
     private String buildEmailBody(Order order) {
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><body style=\"font-family:Inter,Arial,sans-serif;")

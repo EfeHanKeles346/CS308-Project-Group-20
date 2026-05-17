@@ -1209,6 +1209,8 @@ ul { list-style: none; }
 .order-status-processing { background: rgba(245, 158, 11, 0.12); color: var(--orange); }
 .order-status-in-transit { background: rgba(8, 145, 178, 0.12); color: var(--cyan); }
 .order-status-delivered { background: rgba(124, 58, 237, 0.12); color: var(--purple); }
+.order-status-cancelled { background: rgba(107, 114, 128, 0.14); color: var(--text-secondary); }
+.order-status-refund { background: rgba(16, 185, 129, 0.12); color: var(--green); }
 
 .order-card-items {
   display: flex; flex-direction: column; gap: 12px;
@@ -1289,6 +1291,101 @@ ul { list-style: none; }
   .order-card-meta { align-items: flex-start; flex-direction: row; width: 100%; justify-content: space-between; }
   .order-card-details { grid-template-columns: 1fr; }
   .order-stats { grid-template-columns: 1fr; }
+}
+
+/* ======================== SALES MANAGER ======================== */
+.manager-tabs {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px; margin-bottom: 18px;
+}
+.manager-panel { padding: 28px; overflow: hidden; }
+.manager-table-wrap {
+  overflow-x: auto; border: 1px solid var(--border);
+  border-radius: var(--radius-xl); background: white;
+}
+.manager-table {
+  width: 100%; border-collapse: collapse; min-width: 820px;
+}
+.manager-table th,
+.manager-table td {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  text-align: left; vertical-align: middle;
+}
+.manager-table th {
+  background: var(--bg-secondary); color: var(--text-tertiary);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+}
+.manager-table td strong,
+.manager-table td span { display: block; }
+.manager-table td span {
+  margin-top: 4px; color: var(--text-tertiary); font-size: 12px;
+}
+.manager-old-price { text-decoration: line-through; }
+.manager-inline-form {
+  display: grid; grid-template-columns: minmax(90px, 1fr) auto;
+  gap: 8px; align-items: center;
+}
+.manager-inline-form input,
+.manager-filters input {
+  width: 100%; height: 42px; border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 0 12px;
+  background: white; color: var(--text-primary); font: inherit;
+}
+.manager-filters {
+  display: flex; align-items: flex-end; gap: 12px;
+  margin-bottom: 18px; flex-wrap: wrap;
+}
+.manager-filters label {
+  display: flex; flex-direction: column; gap: 6px;
+  color: var(--text-secondary); font-size: 13px; font-weight: 700;
+}
+.manager-chart-summary {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px; padding: 16px 18px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.manager-chart-summary span { color: var(--text-tertiary); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
+.manager-chart-summary strong { font-size: 24px; color: var(--text-primary); }
+.manager-chart {
+  height: 320px; padding: 18px; border: 1px solid var(--border);
+  border-radius: var(--radius-xl); color: var(--cyan);
+  background: linear-gradient(180deg, #ffffff, var(--bg-secondary));
+}
+.manager-chart svg { width: 100%; height: 100%; }
+.manager-chart circle { fill: var(--cyan); }
+.manager-revenue-list {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px; margin-top: 16px;
+}
+.manager-revenue-list div {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.manager-revenue-list span { color: var(--text-secondary); }
+.manager-refunds { display: flex; flex-direction: column; gap: 14px; }
+.manager-refund-card {
+  display: flex; justify-content: space-between; gap: 18px;
+  padding: 18px; border: 1px solid var(--border);
+  border-radius: var(--radius-xl); background: white;
+}
+.manager-refund-card h3 { margin: 4px 0; font-size: 18px; }
+.manager-refund-card span,
+.manager-refund-card p { color: var(--text-secondary); font-size: 13px; }
+.manager-refund-actions {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 8px; flex-wrap: wrap;
+}
+.manager-empty {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 160px; color: var(--text-tertiary); font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .manager-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .manager-refund-card { flex-direction: column; }
+  .manager-refund-actions { justify-content: flex-start; }
 }
 
 /* ======================== SCROLLBAR ======================== */

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -31,6 +32,19 @@ public class OrderController {
     @PostMapping
     public Order createOrder(@RequestBody Order order) throws ExecutionException, InterruptedException {
         return orderService.createOrder(order);
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public Order cancelOrder(@PathVariable String orderId, @RequestBody(required = false) Map<String, Object> body)
+            throws ExecutionException, InterruptedException {
+        String userEmail = body == null ? "" : String.valueOf(body.getOrDefault("userEmail", ""));
+        return orderService.cancelOrder(orderId, userEmail);
+    }
+
+    @PostMapping("/{orderId}/refund")
+    public Object createRefundRequest(@PathVariable String orderId, @RequestBody Map<String, Object> body)
+            throws ExecutionException, InterruptedException {
+        return orderService.createRefundRequest(orderId, body);
     }
 
     @GetMapping("/user/{email}")

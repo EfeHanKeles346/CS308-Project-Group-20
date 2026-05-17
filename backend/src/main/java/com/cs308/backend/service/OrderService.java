@@ -2,6 +2,7 @@ package com.cs308.backend.service;
 
 import com.cs308.backend.model.Order;
 import com.cs308.backend.model.OrderItem;
+import com.cs308.backend.model.RefundRequest;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -26,10 +28,16 @@ public class OrderService {
     private static final String STATUS_PROCESSING = "PROCESSING";
     private static final String STATUS_IN_TRANSIT = "IN_TRANSIT";
     private static final String STATUS_DELIVERED = "DELIVERED";
+    private static final String STATUS_CANCELLED = "CANCELLED";
+    private static final String STATUS_REFUND_REQUESTED = "REFUND_REQUESTED";
+    private static final String STATUS_REFUNDED = "REFUNDED";
     private static final Set<String> VALID_STATUSES = Set.of(
         STATUS_PROCESSING,
         STATUS_IN_TRANSIT,
-        STATUS_DELIVERED
+        STATUS_DELIVERED,
+        STATUS_CANCELLED,
+        STATUS_REFUND_REQUESTED,
+        STATUS_REFUNDED
     );
 
     private final Firestore firestore;
@@ -117,6 +125,63 @@ public class OrderService {
         return invoiceService.buildInvoice(order);
     }
 
+    public Order cancelOrder(String orderId, String userEmail) throws ExecutionException, InterruptedException {
+        Order order = getOrderById(orderId);
+        if (order == null) {
+            throw new IllegalArgumentException("Order not found: " + orderId);
+        }
+        if (userEmail != null && !userEmail.isBlank() && !userEmail.equalsIgnoreCase(order.getUserEmail())) {
+            throw new IllegalArgumentException("This order does not belong to the requested user.");
+        }
+        if (!STATUS_PROCESSING.equals(normalizeStatus(order.getStatus()))) {
+            throw new IllegalStateException("Only processing orders can be cancelled.");
+        }
+
+        incrementStock(order);
+        order.setStatus(STATUS_CANCELLED);
+        firestore.collection("orders").document(orderId).update("status", STATUS_CANCELLED).get();
+        return order;
+    }
+
+    public RefundRequest createRefundRequest(String orderId, Map<String, Object> body)
+            throws ExecutionException, InterruptedException {
+        Order order = getOrderById(orderId);
+        if (order == null) {
+            throw new IllegalArgumentException("Order not found: " + orderId);
+        }
+
+        String userEmail = Objects.toString(body.get("userEmail"), "");
+        if (!userEmail.isBlank() && !userEmail.equalsIgnoreCase(order.getUserEmail())) {
+            throw new IllegalArgumentException("This order does not belong to the requested user.");
+        }
+        if (!STATUS_DELIVERED.equals(normalizeStatus(order.getStatus()))) {
+            throw new IllegalStateException("Refund requests can only be created for delivered orders.");
+        }
+
+        List<QueryDocumentSnapshot> existing = firestore.collection("refundRequests")
+            .whereEqualTo("orderId", orderId)
+            .whereEqualTo("status", "PENDING")
+            .get()
+            .get()
+            .getDocuments();
+        if (!existing.isEmpty()) {
+            throw new IllegalStateException("A pending refund request already exists for this order.");
+        }
+
+        RefundRequest request = new RefundRequest();
+        request.setRefundId(UUID.randomUUID().toString());
+        request.setOrderId(orderId);
+        request.setUserEmail(order.getUserEmail());
+        request.setFullName(order.getFullName());
+        request.setReason(Objects.toString(body.get("reason"), "").trim());
+        request.setStatus("PENDING");
+        request.setCreatedAt(System.currentTimeMillis());
+
+        firestore.collection("refundRequests").document(request.getRefundId()).set(request).get();
+        firestore.collection("orders").document(orderId).update("status", STATUS_REFUND_REQUESTED).get();
+        return request;
+    }
+
     private void decrementStockAtomically(Order order) throws ExecutionException, InterruptedException {
         Map<String, DocumentReference> productRefs = new HashMap<>();
         for (OrderItem item : order.getItems()) {
@@ -180,6 +245,24 @@ public class OrderService {
             orders.add(normalizeOrder(doc.toObject(Order.class)));
         }
         return orders;
+    }
+
+    private void incrementStock(Order order) throws ExecutionException, InterruptedException {
+        Map<String, Integer> returned = new HashMap<>();
+        for (OrderItem item : order.getItems()) {
+            returned.merge(item.getProductId(), item.getQuantity(), Integer::sum);
+        }
+
+        for (Map.Entry<String, Integer> entry : returned.entrySet()) {
+            DocumentReference ref = firestore.collection("products").document(entry.getKey());
+            DocumentSnapshot snap = ref.get().get();
+            int current = 0;
+            Object stockObj = snap.exists() ? snap.get("stock") : null;
+            if (stockObj instanceof Number stockNum) {
+                current = stockNum.intValue();
+            }
+            ref.update("stock", current + entry.getValue()).get();
+        }
     }
 
     private Order normalizeOrder(Order order) {

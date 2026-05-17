@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchUserOrders, getInvoiceDownloadUrl } from '../services/api';
+import { cancelOrder, createRefundRequest, fetchUserOrders, getInvoiceDownloadUrl } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const STATUS_STYLES = {
   PROCESSING: { label: 'Processing', className: 'order-status order-status-processing', icon: 'fa-gears' },
   IN_TRANSIT: { label: 'In Transit', className: 'order-status order-status-in-transit', icon: 'fa-truck-fast' },
   DELIVERED: { label: 'Delivered', className: 'order-status order-status-delivered', icon: 'fa-box-open' },
+  CANCELLED: { label: 'Cancelled', className: 'order-status order-status-cancelled', icon: 'fa-ban' },
+  REFUND_REQUESTED: { label: 'Refund Requested', className: 'order-status order-status-refund', icon: 'fa-rotate-left' },
+  REFUNDED: { label: 'Refunded', className: 'order-status order-status-refund', icon: 'fa-circle-check' },
 };
 
 function normalizeStatus(status) {
@@ -41,8 +45,10 @@ function currency(amount) {
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function OrderCard({ order }) {
+function OrderCard({ order, userEmail, onChanged }) {
   const [expanded, setExpanded] = useState(false);
+  const [actionLoading, setActionLoading] = useState('');
+  const { showToast } = useToast();
 
   const statusKey = normalizeStatus(order.status);
   const status = STATUS_STYLES[statusKey];
@@ -52,6 +58,39 @@ function OrderCard({ order }) {
   const itemTotal = items.reduce((sum, item) => sum + (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0), 0);
   const totalPrice = order.totalPrice ?? itemTotal;
   const address = order.deliveryAddress || {};
+  const canCancel = statusKey === 'PROCESSING';
+  const canRefund = statusKey === 'DELIVERED';
+
+  const handleCancel = async () => {
+    setActionLoading('cancel');
+    const result = await cancelOrder(order.orderId, userEmail);
+    setActionLoading('');
+
+    if (!result.success) {
+      showToast(result.error || 'Could not cancel order.', 'error');
+      return;
+    }
+
+    showToast('Order cancelled and stock restored.', 'success');
+    onChanged();
+  };
+
+  const handleRefund = async () => {
+    const reason = window.prompt('Refund reason');
+    if (reason === null) return;
+
+    setActionLoading('refund');
+    const result = await createRefundRequest(order.orderId, userEmail, reason);
+    setActionLoading('');
+
+    if (!result.success) {
+      showToast(result.error || 'Could not create refund request.', 'error');
+      return;
+    }
+
+    showToast('Refund request sent to sales manager.', 'success');
+    onChanged();
+  };
 
   return (
     <article className="order-card">
@@ -150,6 +189,28 @@ function OrderCard({ order }) {
           <i className={`fas fa-chevron-${expanded ? 'up' : 'down'}`} />
           <span>{expanded ? 'Hide details' : 'View details'}</span>
         </button>
+        {canCancel && (
+          <button
+            type="button"
+            className="btn btn-outline order-toggle"
+            onClick={handleCancel}
+            disabled={actionLoading === 'cancel'}
+          >
+            <i className="fas fa-ban" />
+            <span>{actionLoading === 'cancel' ? 'Cancelling...' : 'Cancel'}</span>
+          </button>
+        )}
+        {canRefund && (
+          <button
+            type="button"
+            className="btn btn-outline order-toggle"
+            onClick={handleRefund}
+            disabled={actionLoading === 'refund'}
+          >
+            <i className="fas fa-rotate-left" />
+            <span>{actionLoading === 'refund' ? 'Sending...' : 'Refund request'}</span>
+          </button>
+        )}
       </footer>
     </article>
   );
@@ -263,7 +324,7 @@ export default function OrdersPanel({ userEmail }) {
       {status === 'loaded' && orders.length > 0 && (
         <div className="order-list">
           {sortedOrders.map((order) => (
-            <OrderCard key={order.orderId} order={order} />
+            <OrderCard key={order.orderId} order={order} userEmail={userEmail} onChanged={() => loadOrders()} />
           ))}
         </div>
       )}

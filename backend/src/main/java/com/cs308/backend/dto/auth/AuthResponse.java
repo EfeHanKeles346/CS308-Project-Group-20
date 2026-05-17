@@ -4,6 +4,7 @@ public record AuthResponse(
     String uid,
     String email,
     String displayName,
+    String role,
     String idToken,
     String refreshToken,
     String message
