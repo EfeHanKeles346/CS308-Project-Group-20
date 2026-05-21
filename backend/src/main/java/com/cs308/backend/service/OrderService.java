@@ -11,6 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +34,7 @@ public class OrderService {
     private static final String STATUS_CANCELLED = "CANCELLED";
     private static final String STATUS_REFUND_REQUESTED = "REFUND_REQUESTED";
     private static final String STATUS_REFUNDED = "REFUNDED";
+    private static final int REFUND_WINDOW_MONTHS = 1;
     private static final Set<String> VALID_STATUSES = Set.of(
         STATUS_PROCESSING,
         STATUS_IN_TRANSIT,
@@ -157,6 +161,9 @@ public class OrderService {
         if (!STATUS_DELIVERED.equals(normalizeStatus(order.getStatus()))) {
             throw new IllegalStateException("Refund requests can only be created for delivered orders.");
         }
+        if (!isWithinRefundWindow(order.getCreatedAt(), System.currentTimeMillis())) {
+            throw new IllegalStateException("Refund requests can only be created within 1 month of purchase.");
+        }
 
         List<QueryDocumentSnapshot> existing = firestore.collection("refundRequests")
             .whereEqualTo("orderId", orderId)
@@ -269,6 +276,17 @@ public class OrderService {
         if (order == null) return null;
         order.setStatus(normalizeStatus(order.getStatus()));
         return order;
+    }
+
+    static boolean isWithinRefundWindow(long purchaseTimeMillis, long nowMillis) {
+        if (purchaseTimeMillis <= 0) {
+            return false;
+        }
+
+        ZonedDateTime purchaseTime = Instant.ofEpochMilli(purchaseTimeMillis).atZone(ZoneOffset.UTC);
+        ZonedDateTime refundDeadline = purchaseTime.plusMonths(REFUND_WINDOW_MONTHS);
+        ZonedDateTime now = Instant.ofEpochMilli(nowMillis).atZone(ZoneOffset.UTC);
+        return !now.isAfter(refundDeadline);
     }
 
     private String normalizeStatus(String status) {

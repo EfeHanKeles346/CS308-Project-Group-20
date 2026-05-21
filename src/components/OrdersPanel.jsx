@@ -45,6 +45,31 @@ function currency(amount) {
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function addMonthsClamped(date, months) {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  const targetMonth = month + months;
+  const lastDayOfTargetMonth = new Date(Date.UTC(year, targetMonth + 1, 0)).getUTCDate();
+
+  return new Date(Date.UTC(
+    year,
+    targetMonth,
+    Math.min(day, lastDayOfTargetMonth),
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    date.getUTCSeconds(),
+    date.getUTCMilliseconds()
+  ));
+}
+
+function isWithinRefundWindow(createdAt) {
+  if (!createdAt) return false;
+  const purchaseDate = new Date(createdAt);
+  if (Number.isNaN(purchaseDate.getTime())) return false;
+  return Date.now() <= addMonthsClamped(purchaseDate, 1).getTime();
+}
+
 function OrderCard({ order, userEmail, onChanged }) {
   const [expanded, setExpanded] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
@@ -59,7 +84,7 @@ function OrderCard({ order, userEmail, onChanged }) {
   const totalPrice = order.totalPrice ?? itemTotal;
   const address = order.deliveryAddress || {};
   const canCancel = statusKey === 'PROCESSING';
-  const canRefund = statusKey === 'DELIVERED';
+  const canRefund = statusKey === 'DELIVERED' && isWithinRefundWindow(order.createdAt);
 
   const handleCancel = async () => {
     setActionLoading('cancel');
@@ -76,6 +101,11 @@ function OrderCard({ order, userEmail, onChanged }) {
   };
 
   const handleRefund = async () => {
+    if (!isWithinRefundWindow(order.createdAt)) {
+      showToast('Refund requests can only be created within 1 month of purchase.', 'error');
+      return;
+    }
+
     const reason = window.prompt('Refund reason');
     if (reason === null) return;
 

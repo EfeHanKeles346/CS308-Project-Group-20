@@ -25,6 +25,14 @@ function currency(amount) {
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function compactCurrency(amount) {
+  const value = Number(amount) || 0;
+  if (Math.abs(value) >= 1000) {
+    return `$${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`;
+  }
+  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
 function dateTime(ms) {
   if (!ms) return '-';
   return new Date(ms).toLocaleString();
@@ -237,6 +245,134 @@ function DateFilters({ fromDate, toDate, setFromDate, setToDate, onApply }) {
   );
 }
 
+function shortDateLabel(date) {
+  if (!date) return '';
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function buildChartGeometry(items, valueKey) {
+  const width = 680;
+  const height = 320;
+  const margin = { top: 26, right: 26, bottom: 58, left: 74 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  const maxValue = Math.max(...items.map((item) => Number(item[valueKey]) || 0), 1);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+    const value = maxValue * ratio;
+    return {
+      value,
+      y: margin.top + plotHeight - (ratio * plotHeight),
+    };
+  });
+  const points = items.map((item, index) => {
+    const rawValue = Number(item[valueKey]) || 0;
+    const x = items.length === 1
+      ? margin.left + plotWidth / 2
+      : margin.left + (index / (items.length - 1)) * plotWidth;
+    const y = margin.top + plotHeight - (rawValue / maxValue) * plotHeight;
+    return { ...item, rawValue, x, y };
+  });
+
+  return {
+    width,
+    height,
+    margin,
+    plotWidth,
+    plotHeight,
+    ticks,
+    points,
+    path: points.map((point) => `${point.x},${point.y}`).join(' '),
+  };
+}
+
+function DailyMetricChart({ title, subtitle, items, valueKey, yAxisLabel }) {
+  const chart = useMemo(() => buildChartGeometry(items, valueKey), [items, valueKey]);
+  const labelEvery = Math.max(1, Math.ceil(items.length / 6));
+
+  return (
+    <section className="manager-chart-card">
+      <div className="manager-chart-header">
+        <div>
+          <h3>{title}</h3>
+          <span>{subtitle}</span>
+        </div>
+      </div>
+      <div className="manager-chart">
+        {items.length === 0 ? (
+          <div className="manager-empty">No data in selected range.</div>
+        ) : (
+          <svg viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={title}>
+            {chart.ticks.map((tick) => (
+              <g key={tick.value}>
+                <line
+                  className="manager-chart-grid"
+                  x1={chart.margin.left}
+                  y1={tick.y}
+                  x2={chart.width - chart.margin.right}
+                  y2={tick.y}
+                />
+                <text className="manager-chart-y-label" x={chart.margin.left - 12} y={tick.y + 4}>
+                  {compactCurrency(tick.value)}
+                </text>
+              </g>
+            ))}
+            <line
+              className="manager-chart-axis"
+              x1={chart.margin.left}
+              y1={chart.margin.top}
+              x2={chart.margin.left}
+              y2={chart.height - chart.margin.bottom}
+            />
+            <line
+              className="manager-chart-axis"
+              x1={chart.margin.left}
+              y1={chart.height - chart.margin.bottom}
+              x2={chart.width - chart.margin.right}
+              y2={chart.height - chart.margin.bottom}
+            />
+            <text
+              className="manager-chart-axis-title manager-chart-axis-title-y"
+              x={18}
+              y={chart.margin.top + chart.plotHeight / 2}
+              transform={`rotate(-90 18 ${chart.margin.top + chart.plotHeight / 2})`}
+            >
+              {yAxisLabel}
+            </text>
+            <text
+              className="manager-chart-axis-title"
+              x={chart.margin.left + chart.plotWidth / 2}
+              y={chart.height - 14}
+            >
+              Date
+            </text>
+            <polyline className="manager-chart-line" points={chart.path} />
+            {chart.points.map((point, index) => {
+              const shouldLabel = index === 0 || index === chart.points.length - 1 || index % labelEvery === 0;
+              return (
+                <g key={`${point.date}-${valueKey}`}>
+                  <circle className="manager-chart-dot" cx={point.x} cy={point.y} r="4" />
+                  {shouldLabel && (
+                    <>
+                      <text className="manager-chart-point-label" x={point.x} y={Math.max(14, point.y - 10)}>
+                        {compactCurrency(point.rawValue)}
+                      </text>
+                      <text className="manager-chart-x-label" x={point.x} y={chart.height - chart.margin.bottom + 24}>
+                        {shortDateLabel(point.date)}
+                      </text>
+                    </>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function RevenueTab() {
   const { showToast } = useToast();
   const [fromDate, setFromDate] = useState('');
@@ -257,40 +393,60 @@ function RevenueTab() {
     loadRevenue();
   }, [loadRevenue]);
 
-  const maxRevenue = Math.max(...revenue.map((item) => Number(item.revenue) || 0), 1);
-  const points = revenue.map((item, index) => {
-    const x = revenue.length === 1 ? 50 : (index / (revenue.length - 1)) * 100;
-    const y = 100 - ((Number(item.revenue) || 0) / maxRevenue) * 80 - 10;
-    return `${x},${y}`;
-  }).join(' ');
-  const total = useMemo(() => revenue.reduce((sum, item) => sum + (Number(item.revenue) || 0), 0), [revenue]);
+  const profitData = useMemo(() => revenue.map((item) => {
+    const revenueValue = Number(item.revenue) || 0;
+    const cost = revenueValue * 0.5;
+    return {
+      ...item,
+      cost,
+      profit: revenueValue - cost,
+    };
+  }), [revenue]);
+
+  const totals = useMemo(() => profitData.reduce((acc, item) => ({
+    revenue: acc.revenue + (Number(item.revenue) || 0),
+    cost: acc.cost + (Number(item.cost) || 0),
+    profit: acc.profit + (Number(item.profit) || 0),
+  }), { revenue: 0, cost: 0, profit: 0 }), [profitData]);
 
   return (
     <>
       <DateFilters fromDate={fromDate} toDate={toDate} setFromDate={setFromDate} setToDate={setToDate} onApply={loadRevenue} />
-      <div className="manager-chart-summary">
-        <span>Total revenue</span>
-        <strong>{currency(total)}</strong>
+      <div className="manager-chart-summary manager-chart-summary-grid">
+        <div>
+          <span>Total revenue</span>
+          <strong>{currency(totals.revenue)}</strong>
+        </div>
+        <div>
+          <span>Mock cost</span>
+          <strong>{currency(totals.cost)}</strong>
+        </div>
+        <div>
+          <span>Mock profit</span>
+          <strong>{currency(totals.profit)}</strong>
+        </div>
       </div>
-      <div className="manager-chart">
-        {revenue.length === 0 ? (
-          <div className="manager-empty">No revenue in selected range.</div>
-        ) : (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Daily revenue chart">
-            <polyline points={points} fill="none" stroke="currentColor" strokeWidth="3" vectorEffect="non-scaling-stroke" />
-            {revenue.map((item, index) => {
-              const x = revenue.length === 1 ? 50 : (index / (revenue.length - 1)) * 100;
-              const y = 100 - ((Number(item.revenue) || 0) / maxRevenue) * 80 - 10;
-              return <circle key={item.date} cx={x} cy={y} r="1.6" />;
-            })}
-          </svg>
-        )}
+      <div className="manager-charts">
+        <DailyMetricChart
+          title="Revenue chart"
+          subtitle="Daily revenue with x and y values"
+          items={profitData}
+          valueKey="revenue"
+          yAxisLabel="Revenue"
+        />
+        <DailyMetricChart
+          title="Profit chart"
+          subtitle="Mock profit, cost is 50% of revenue"
+          items={profitData}
+          valueKey="profit"
+          yAxisLabel="Profit"
+        />
       </div>
       <div className="manager-revenue-list">
-        {revenue.map((item) => (
+        {profitData.map((item) => (
           <div key={item.date}>
             <span>{item.date}</span>
-            <strong>{currency(item.revenue)}</strong>
+            <strong>{currency(item.revenue)} revenue / {currency(item.profit)} profit</strong>
           </div>
         ))}
       </div>
