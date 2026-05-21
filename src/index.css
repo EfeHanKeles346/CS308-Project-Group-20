@@ -1326,19 +1326,38 @@ ul { list-style: none; }
   gap: 8px; align-items: center;
 }
 .manager-inline-form input,
-.manager-filters input {
+.manager-filters input,
+.manager-form-grid input,
+.manager-product-form input,
+.manager-product-form select,
+.manager-product-form textarea,
+.manager-table select {
   width: 100%; height: 42px; border: 1px solid var(--border);
   border-radius: var(--radius-md); padding: 0 12px;
   background: white; color: var(--text-primary); font: inherit;
 }
+.manager-product-form textarea { height: auto; min-height: 92px; padding-top: 10px; resize: vertical; }
 .manager-filters {
   display: flex; align-items: flex-end; gap: 12px;
   margin-bottom: 18px; flex-wrap: wrap;
 }
-.manager-filters label {
+.manager-filters label,
+.manager-form-grid label,
+.manager-product-form label {
   display: flex; flex-direction: column; gap: 6px;
   color: var(--text-secondary); font-size: 13px; font-weight: 700;
 }
+.manager-form-grid {
+  display: grid; grid-template-columns: minmax(180px, 1fr) minmax(160px, 220px) auto;
+  gap: 12px; align-items: end; margin-bottom: 18px;
+}
+.manager-product-form {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px; padding: 16px; margin-bottom: 18px;
+  border: 1px solid var(--border); border-radius: var(--radius-xl);
+  background: var(--bg-secondary);
+}
+.manager-form-wide { grid-column: 1 / -1; }
 .manager-chart-summary {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 14px; padding: 16px 18px;
@@ -1430,6 +1449,8 @@ ul { list-style: none; }
 
 @media (max-width: 768px) {
   .manager-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .manager-form-grid,
+  .manager-product-form { grid-template-columns: 1fr; }
   .manager-chart-summary-grid { grid-template-columns: 1fr; }
   .manager-chart { height: 300px; padding: 8px; }
   .manager-refund-card { flex-direction: column; }

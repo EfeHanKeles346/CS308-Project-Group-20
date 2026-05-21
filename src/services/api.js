@@ -298,6 +298,109 @@ export async function decideRefundRequest(refundId, decision, note = '') {
   return { success: true, refund: result.data };
 }
 
+export async function fetchProductManagerCategories() {
+  const result = await request('/product-manager/categories');
+  if (!result.success) return result;
+
+  return { success: true, categories: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function addProductManagerCategory(category) {
+  const result = await request('/product-manager/categories', {
+    method: 'POST',
+    body: JSON.stringify(category),
+  });
+  if (!result.success) return result;
+
+  return { success: true, category: result.data };
+}
+
+export async function removeProductManagerCategory(categoryId) {
+  const result = await request(`/product-manager/categories/${encodeURIComponent(categoryId)}`, {
+    method: 'DELETE',
+  });
+  if (!result.success) return result;
+
+  return { success: true, category: result.data };
+}
+
+export async function fetchProductManagerProducts() {
+  const result = await request('/product-manager/products');
+  if (!result.success) return result;
+
+  return { success: true, products: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function addProductManagerProduct(product) {
+  const result = await request('/product-manager/products', {
+    method: 'POST',
+    body: JSON.stringify(product),
+  });
+  if (!result.success) return result;
+
+  return { success: true, product: result.data };
+}
+
+export async function archiveProductManagerProduct(productId) {
+  const result = await request(`/product-manager/products/${encodeURIComponent(productId)}`, {
+    method: 'DELETE',
+  });
+  if (!result.success) return result;
+
+  return { success: true, product: result.data };
+}
+
+export async function updateProductManagerStock(productId, stock) {
+  const result = await request(`/product-manager/products/${encodeURIComponent(productId)}/stock`, {
+    method: 'PATCH',
+    body: JSON.stringify({ stock }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, product: result.data };
+}
+
+export async function fetchProductManagerOrders(from, to) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', String(from));
+  if (to) params.set('to', String(to));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const result = await request(`/product-manager/orders${query}`);
+  if (!result.success) return result;
+
+  return { success: true, orders: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function updateProductManagerOrderStatus(orderId, status) {
+  const result = await request(`/product-manager/orders/${encodeURIComponent(orderId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+  if (!result.success) return result;
+
+  return { success: true, order: result.data };
+}
+
+export async function fetchProductManagerComments() {
+  const result = await request('/product-manager/comments');
+  if (!result.success) return result;
+
+  return { success: true, comments: Array.isArray(result.data) ? result.data : [] };
+}
+
+export async function decideProductManagerComment(productId, commentId, status) {
+  const result = await request(
+    `/product-manager/comments/${encodeURIComponent(productId)}/${encodeURIComponent(commentId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }
+  );
+  if (!result.success) return result;
+
+  return { success: true, comment: result.data };
+}
+
 export async function fetchProductComments(productId) {
   if (!productId) {
     return { success: false, error: 'Product is required.' };

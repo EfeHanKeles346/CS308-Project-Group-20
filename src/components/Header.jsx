@@ -89,6 +89,9 @@ export default function Header({ onOpenModal, onSearch, selectedCategory, onCate
           {user?.role === 'sales_manager' && (
             <Link to="/sales-manager" className="nav-link">Manager</Link>
           )}
+          {user?.role === 'product_manager' && (
+            <Link to="/product-manager" className="nav-link">Product Manager</Link>
+          )}
         </nav>
 
         <div className="header-actions">

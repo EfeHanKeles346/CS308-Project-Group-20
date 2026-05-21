@@ -19,6 +19,7 @@ import WishlistPage from './pages/WishlistPage';
 import PaymentPage from './pages/PaymentPage';
 import UserPage from './pages/UserPage';
 import SalesManagerPage from './pages/SalesManagerPage';
+import ProductManagerPage from './pages/ProductManagerPage';
 
 function CheckoutLoginGate({ onOpenModal }) {
   useEffect(() => {
@@ -85,6 +86,7 @@ function AppContent() {
           <Route path="/account" element={<UserPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/sales-manager" element={<SalesManagerPage />} />
+          <Route path="/product-manager" element={<ProductManagerPage />} />
         </Routes>
       </main>
       <Footer onOpenModal={openModal} />

@@ -52,6 +52,11 @@ public class SalesManagerService {
         Map<String, Object> updates = new HashMap<>();
         updates.put("price", price);
         updates.put("priceDisplay", formatMoney(price));
+        String status = Objects.toString(snapshot.get("status"), "").trim().toUpperCase(Locale.ROOT);
+        if (!"ARCHIVED".equals(status) && !"CATEGORY_REMOVED".equals(status)) {
+            updates.put("status", "ACTIVE");
+            updates.put("active", true);
+        }
 
         Object oldPrice = snapshot.get("oldPrice");
         if (oldPrice instanceof Number oldPriceNumber && oldPriceNumber.doubleValue() > price) {

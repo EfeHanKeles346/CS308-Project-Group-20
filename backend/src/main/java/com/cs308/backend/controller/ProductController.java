@@ -2,6 +2,7 @@ package com.cs308.backend.controller;
 
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.DocumentSnapshot;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +36,9 @@ public class ProductController {
         for (QueryDocumentSnapshot document : firestore.collection("products").get().get().getDocuments()) {
             Map<String, Object> product = new HashMap<>(document.getData());
             product.putIfAbsent("id", document.getId());
+            if (!isVisibleOnStorefront(product)) {
+                continue;
+            }
             applyRatingAggregate(product, document.getId());
             products.add(product);
         }
@@ -56,8 +60,35 @@ public class ProductController {
         }
 
         product.putIfAbsent("id", snapshot.getId());
+        if (!isVisibleOnStorefront(product)) {
+            throw new IllegalArgumentException("Product not found: " + id);
+        }
         applyRatingAggregate(product, snapshot.getId());
         return product;
+    }
+
+    private boolean isVisibleOnStorefront(Map<String, Object> product)
+            throws ExecutionException, InterruptedException {
+        if (Boolean.FALSE.equals(product.get("active")) || Boolean.TRUE.equals(product.get("deleted"))) {
+            return false;
+        }
+
+        String status = Objects.toString(product.get("status"), "ACTIVE").trim().toUpperCase(Locale.ROOT);
+        if (!status.isBlank() && !"ACTIVE".equals(status)) {
+            return false;
+        }
+
+        if (readDouble(product.get("price")) <= 0) {
+            return false;
+        }
+
+        String category = Objects.toString(product.get("category"), "").trim();
+        if (category.isBlank()) {
+            return true;
+        }
+
+        DocumentSnapshot categorySnapshot = firestore.collection("categories").document(category).get().get();
+        return !categorySnapshot.exists() || !Boolean.FALSE.equals(categorySnapshot.get("active"));
     }
 
     private void applyRatingAggregate(Map<String, Object> product, String productId)
