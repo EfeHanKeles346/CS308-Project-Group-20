@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { headerCategories } from '../data/categories';
+import { useCategories } from '../context/CategoriesContext';
+import { iconForCategory } from '../data/categories';
 
 export default function Header({ onOpenModal, onSearch, selectedCategory, onCategorySelect }) {
   const [scrolled, setScrolled] = useState(false);
@@ -10,6 +11,7 @@ export default function Header({ onOpenModal, onSearch, selectedCategory, onCate
   const [searchValue, setSearchValue] = useState('');
   const { cartCount } = useCart();
   const { isLoggedIn, user } = useAuth();
+  const { categories } = useCategories();
   const navigate = useNavigate();
   const userInitials = user?.name
     ?.split(' ')
@@ -121,7 +123,7 @@ export default function Header({ onOpenModal, onSearch, selectedCategory, onCate
       <div className={`cat-nav${mobileOpen ? ' open' : ''}`}>
         <div className="container">
           <div className="cat-nav-scroll" role="navigation" aria-label="Categories">
-            {headerCategories.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 className={`cat-link${selectedCategory === cat.id ? ' active' : ''}`}
@@ -132,7 +134,7 @@ export default function Header({ onOpenModal, onSearch, selectedCategory, onCate
                 }}
                 aria-pressed={selectedCategory === cat.id}
               >
-                <i className={`fas ${cat.icon}`} /> {cat.label}
+                <i className={`fas ${iconForCategory(cat.id, cat.icon)}`} /> {cat.name}
               </button>
             ))}
             <button
