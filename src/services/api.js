@@ -123,6 +123,16 @@ export async function fetchProductById(id) {
   };
 }
 
+export async function fetchCategories() {
+  const result = await request('/categories');
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    categories: Array.isArray(result.data) ? result.data : [],
+  };
+}
+
 export async function addToCartAPI() {
   return { success: true, message: 'Product added to cart.' };
 }
