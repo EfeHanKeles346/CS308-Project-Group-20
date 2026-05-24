@@ -278,13 +278,25 @@ public class ProductManagerService {
     }
 
     private String normalizeId(String value) {
-        String id = value.trim().toLowerCase(Locale.ROOT)
+        String id = transliterateTurkish(value).toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9]+", "-")
             .replaceAll("(^-|-$)", "");
         if (id.isBlank()) {
             throw new IllegalArgumentException("Category id is required.");
         }
         return id;
+    }
+
+    // Map Turkish-specific letters to their ASCII equivalents before slugifying,
+    // otherwise the [^a-z0-9] pass would drop them entirely (e.g. "Örnek" -> "rnek").
+    private String transliterateTurkish(String value) {
+        return value
+            .replace('ı', 'i').replace('İ', 'I')
+            .replace('ğ', 'g').replace('Ğ', 'G')
+            .replace('ü', 'u').replace('Ü', 'U')
+            .replace('ş', 's').replace('Ş', 'S')
+            .replace('ö', 'o').replace('Ö', 'O')
+            .replace('ç', 'c').replace('Ç', 'C');
     }
 
     private String normalizeStatus(Object value) {
