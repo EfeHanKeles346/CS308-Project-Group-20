@@ -1,10 +1,12 @@
 import { useRef, useEffect } from 'react';
 import useReveal from '../hooks/useReveal';
-import categories from '../data/categories';
+import { useCategories } from '../context/CategoriesContext';
+import { iconForCategory } from '../data/categories';
 
 const LEFT_SCROLL = 420;
 
 export default function Categories({ selectedCategory, onCategorySelect }) {
+  const { categories } = useCategories();
   const headerRef = useReveal();
   const revealRef = useReveal();
   const scrollRef = useRef(null);
@@ -46,9 +48,9 @@ export default function Categories({ selectedCategory, onCategorySelect }) {
                 onClick={() => onCategorySelect(cat.id)}
                 aria-pressed={selectedCategory === cat.id}
               >
-                <div className="category-icon"><i className={`fas ${cat.icon}`} /></div>
+                <div className="category-icon"><i className={`fas ${iconForCategory(cat.id, cat.icon)}`} /></div>
                 <span>{cat.name}</span>
-                <small>{cat.count} products</small>
+                <small>{cat.count} product{cat.count !== 1 ? 's' : ''}</small>
               </button>
             ))}
           </div>

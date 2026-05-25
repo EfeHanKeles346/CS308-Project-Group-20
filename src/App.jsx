@@ -4,6 +4,7 @@ import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ProductsProvider } from './context/ProductsContext';
+import { CategoriesProvider } from './context/CategoriesContext';
 import { WishlistProvider } from './context/WishlistContext';
 import CursorGlow from './components/CursorGlow';
 import Header from './components/Header';
@@ -115,9 +116,11 @@ export default function App() {
         <ToastProvider>
           <AuthProvider>
             <ProductsProvider>
-              <CartAndWishlistProviders>
-                <AppContent />
-              </CartAndWishlistProviders>
+              <CategoriesProvider>
+                <CartAndWishlistProviders>
+                  <AppContent />
+                </CartAndWishlistProviders>
+              </CategoriesProvider>
             </ProductsProvider>
           </AuthProvider>
         </ToastProvider>

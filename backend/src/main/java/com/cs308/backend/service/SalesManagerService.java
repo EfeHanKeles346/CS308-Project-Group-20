@@ -53,7 +53,9 @@ public class SalesManagerService {
         updates.put("price", price);
         updates.put("priceDisplay", formatMoney(price));
         String status = Objects.toString(snapshot.get("status"), "").trim().toUpperCase(Locale.ROOT);
-        if (!"ARCHIVED".equals(status) && !"CATEGORY_REMOVED".equals(status)) {
+        // Pricing publishes DRAFT products, but must not silently un-hide a product
+        // that is archived or hidden because its category was removed.
+        if (!"ARCHIVED".equals(status) && !"CATEGORY_HIDDEN".equals(status) && !"CATEGORY_REMOVED".equals(status)) {
             updates.put("status", "ACTIVE");
             updates.put("active", true);
         }

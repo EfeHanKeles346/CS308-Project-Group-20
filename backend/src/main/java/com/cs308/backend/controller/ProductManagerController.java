@@ -44,6 +44,12 @@ public class ProductManagerController {
         return productManagerService.removeCategory(categoryId);
     }
 
+    @PatchMapping("/categories/{categoryId}/restore")
+    public Map<String, Object> restoreCategory(@PathVariable String categoryId)
+            throws ExecutionException, InterruptedException {
+        return productManagerService.restoreCategory(categoryId);
+    }
+
     @GetMapping("/products")
     public List<Map<String, Object>> getProducts() throws ExecutionException, InterruptedException {
         return productManagerService.getProducts();
@@ -59,6 +65,12 @@ public class ProductManagerController {
     public Map<String, Object> archiveProduct(@PathVariable String productId)
             throws ExecutionException, InterruptedException {
         return productManagerService.archiveProduct(productId);
+    }
+
+    @PatchMapping("/products/{productId}/restore")
+    public Map<String, Object> restoreProduct(@PathVariable String productId)
+            throws ExecutionException, InterruptedException {
+        return productManagerService.restoreProduct(productId);
     }
 
     @PatchMapping("/products/{productId}/stock")

@@ -123,6 +123,16 @@ export async function fetchProductById(id) {
   };
 }
 
+export async function fetchCategories() {
+  const result = await request('/categories');
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    categories: Array.isArray(result.data) ? result.data : [],
+  };
+}
+
 export async function addToCartAPI() {
   return { success: true, message: 'Product added to cart.' };
 }
@@ -348,6 +358,24 @@ export async function archiveProductManagerProduct(productId) {
   if (!result.success) return result;
 
   return { success: true, product: result.data };
+}
+
+export async function restoreProductManagerProduct(productId) {
+  const result = await request(`/product-manager/products/${encodeURIComponent(productId)}/restore`, {
+    method: 'PATCH',
+  });
+  if (!result.success) return result;
+
+  return { success: true, product: result.data };
+}
+
+export async function restoreProductManagerCategory(categoryId) {
+  const result = await request(`/product-manager/categories/${encodeURIComponent(categoryId)}/restore`, {
+    method: 'PATCH',
+  });
+  if (!result.success) return result;
+
+  return { success: true, category: result.data };
 }
 
 export async function updateProductManagerStock(productId, stock) {

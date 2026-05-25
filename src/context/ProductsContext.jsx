@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { fetchProducts } from '../services/api';
 import { normalizeProducts } from '../utils/productUtils';
 
@@ -10,38 +10,40 @@ export function ProductsProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    let ignore = false;
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    const result = await fetchProducts();
 
-    async function loadProducts() {
-      setLoading(true);
-      const result = await fetchProducts();
-
-      if (ignore) return;
-
-      if (result.success) {
-        setProducts(normalizeProducts(result.products));
-        setError('');
-      } else {
-        setProducts([]);
-        setError(result.error || 'Products could not be loaded.');
-      }
-
-      setLoading(false);
+    if (result.success) {
+      setProducts(normalizeProducts(result.products));
+      setError('');
+    } else {
+      setProducts([]);
+      setError(result.error || 'Products could not be loaded.');
     }
 
-    loadProducts();
-    return () => {
-      ignore = true;
-    };
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  // Re-fetch when the user returns to the tab, so products added/priced in the
+  // manager panels (possibly in another tab) show up without a full reload.
+  useEffect(() => {
+    const handleFocus = () => loadProducts();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadProducts]);
 
   const value = useMemo(() => ({
     products,
     loading,
     error,
     setProducts,
-  }), [error, loading, products]);
+    refetch: loadProducts,
+  }), [products, loading, error, loadProducts]);
 
   return <ProductsContext.Provider value={value}>{children}</ProductsContext.Provider>;
 }

@@ -93,14 +93,49 @@ public class ProductManagerService {
             .get()
             .get()
             .getDocuments()) {
+            // Preserve products the PM intentionally archived; only auto-hide the
+            // rest so they can be auto-restored when the category comes back.
+            if ("ARCHIVED".equals(statusOf(product))) {
+                continue;
+            }
             product.getReference().update(Map.of(
                 "active", false,
-                "status", "CATEGORY_REMOVED",
+                "status", "CATEGORY_HIDDEN",
                 "updatedAt", now
             )).get();
         }
 
         return Map.of("id", id, "active", false);
+    }
+
+    public Map<String, Object> restoreCategory(String categoryId) throws ExecutionException, InterruptedException {
+        String id = requireText(categoryId, "Category is required.");
+        DocumentSnapshot snapshot = firestore.collection("categories").document(id).get().get();
+        if (!snapshot.exists()) {
+            throw new IllegalArgumentException("Category not found: " + id);
+        }
+        long now = System.currentTimeMillis();
+        firestore.collection("categories").document(id).update(Map.of(
+            "active", true,
+            "updatedAt", now
+        )).get();
+
+        // Bring back only the products that were hidden *because* of this category.
+        // Products the PM archived by hand stay archived.
+        for (QueryDocumentSnapshot product : firestore.collection("products")
+            .whereEqualTo("category", id)
+            .get()
+            .get()
+            .getDocuments()) {
+            String productStatus = statusOf(product);
+            // CATEGORY_REMOVED is the legacy name for the same auto-hidden state.
+            if (!"CATEGORY_HIDDEN".equals(productStatus) && !"CATEGORY_REMOVED".equals(productStatus)) {
+                continue;
+            }
+            applyRevivedStatus(product.getReference(), product.get("price"), now);
+        }
+
+        return Map.of("id", id, "active", true);
     }
 
     public List<Map<String, Object>> getProducts() throws ExecutionException, InterruptedException {
@@ -168,6 +203,23 @@ public class ProductManagerService {
         Map<String, Object> product = new HashMap<>(snapshot.getData());
         product.put("active", false);
         product.put("status", "ARCHIVED");
+        product.putIfAbsent("id", snapshot.getId());
+        return product;
+    }
+
+    public Map<String, Object> restoreProduct(String productId) throws ExecutionException, InterruptedException {
+        DocumentReference ref = firestore.collection("products").document(requireText(productId, "Product is required."));
+        DocumentSnapshot snapshot = ref.get().get();
+        if (!snapshot.exists()) {
+            throw new IllegalArgumentException("Product not found: " + productId);
+        }
+        long now = System.currentTimeMillis();
+        applyRevivedStatus(ref, snapshot.get("price"), now);
+
+        boolean priced = readNumber(snapshot.get("price")) > 0;
+        Map<String, Object> product = new HashMap<>(snapshot.getData());
+        product.put("active", priced);
+        product.put("status", priced ? "ACTIVE" : "DRAFT");
         product.putIfAbsent("id", snapshot.getId());
         return product;
     }
@@ -278,13 +330,25 @@ public class ProductManagerService {
     }
 
     private String normalizeId(String value) {
-        String id = value.trim().toLowerCase(Locale.ROOT)
+        String id = transliterateTurkish(value).toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9]+", "-")
             .replaceAll("(^-|-$)", "");
         if (id.isBlank()) {
             throw new IllegalArgumentException("Category id is required.");
         }
         return id;
+    }
+
+    // Map Turkish-specific letters to their ASCII equivalents before slugifying,
+    // otherwise the [^a-z0-9] pass would drop them entirely (e.g. "Örnek" -> "rnek").
+    private String transliterateTurkish(String value) {
+        return value
+            .replace('ı', 'i').replace('İ', 'I')
+            .replace('ğ', 'g').replace('Ğ', 'G')
+            .replace('ü', 'u').replace('Ü', 'U')
+            .replace('ş', 's').replace('Ş', 'S')
+            .replace('ö', 'o').replace('Ö', 'O')
+            .replace('ç', 'c').replace('Ç', 'C');
     }
 
     private String normalizeStatus(Object value) {
@@ -298,6 +362,22 @@ public class ProductManagerService {
         } catch (NumberFormatException exception) {
             return 0.0;
         }
+    }
+
+    private String statusOf(QueryDocumentSnapshot product) {
+        return Objects.toString(product.get("status"), "").trim().toUpperCase(Locale.ROOT);
+    }
+
+    // A revived product becomes ACTIVE when it already has a price, otherwise it
+    // falls back to DRAFT and waits for the sales manager to price it.
+    private void applyRevivedStatus(DocumentReference ref, Object priceValue, long now)
+            throws ExecutionException, InterruptedException {
+        boolean priced = readNumber(priceValue) > 0;
+        ref.update(Map.of(
+            "active", priced,
+            "status", priced ? "ACTIVE" : "DRAFT",
+            "updatedAt", now
+        )).get();
     }
 
     private int readNonNegativeInt(Object value, String field) {
