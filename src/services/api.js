@@ -360,6 +360,24 @@ export async function archiveProductManagerProduct(productId) {
   return { success: true, product: result.data };
 }
 
+export async function restoreProductManagerProduct(productId) {
+  const result = await request(`/product-manager/products/${encodeURIComponent(productId)}/restore`, {
+    method: 'PATCH',
+  });
+  if (!result.success) return result;
+
+  return { success: true, product: result.data };
+}
+
+export async function restoreProductManagerCategory(categoryId) {
+  const result = await request(`/product-manager/categories/${encodeURIComponent(categoryId)}/restore`, {
+    method: 'PATCH',
+  });
+  if (!result.success) return result;
+
+  return { success: true, category: result.data };
+}
+
 export async function updateProductManagerStock(productId, stock) {
   const result = await request(`/product-manager/products/${encodeURIComponent(productId)}/stock`, {
     method: 'PATCH',

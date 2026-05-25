@@ -13,6 +13,8 @@ import {
   fetchProductManagerProducts,
   getInvoiceDownloadUrl,
   removeProductManagerCategory,
+  restoreProductManagerCategory,
+  restoreProductManagerProduct,
   updateProductManagerOrderStatus,
   updateProductManagerStock,
 } from '../services/api';
@@ -106,6 +108,16 @@ function CategoriesTab() {
     loadCategories();
   };
 
+  const restoreCategory = async (categoryId) => {
+    const result = await restoreProductManagerCategory(categoryId);
+    if (!result.success) {
+      showToast(result.error || 'Category could not be restored.', 'error');
+      return;
+    }
+    showToast('Category restored. Its priced products are back on the storefront.', 'success');
+    loadCategories();
+  };
+
   return (
     <>
       <form className="manager-form-grid" onSubmit={addCategory}>
@@ -141,15 +153,25 @@ function CategoriesTab() {
                   <td><i className={`fas ${category.icon || 'fa-box'}`} /> {category.icon || 'fa-box'}</td>
                   <td>{category.active === false ? 'Hidden' : 'Active'}</td>
                   <td>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={() => removeCategory(category.id)}
-                      disabled={category.active === false}
-                    >
-                      <i className="fas fa-eye-slash" />
-                      <span>Remove</span>
-                    </button>
+                    {category.active === false ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => restoreCategory(category.id)}
+                      >
+                        <i className="fas fa-eye" />
+                        <span>Restore</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => removeCategory(category.id)}
+                      >
+                        <i className="fas fa-eye-slash" />
+                        <span>Remove</span>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -249,6 +271,16 @@ function ProductsTab() {
     loadProducts();
   };
 
+  const restoreProduct = async (productId) => {
+    const result = await restoreProductManagerProduct(productId);
+    if (!result.success) {
+      showToast(result.error || 'Product could not be restored.', 'error');
+      return;
+    }
+    showToast('Product restored. Priced products go straight back on sale.', 'success');
+    loadProducts();
+  };
+
   return (
     <>
       <form className="manager-product-form" onSubmit={addProduct}>
@@ -291,6 +323,7 @@ function ProductsTab() {
             <tbody>
               {products.map((product) => {
                 const productId = String(product.id);
+                const productStatus = String(product.status || '').toUpperCase();
                 return (
                   <tr key={productId}>
                     <td><strong>{product.name}</strong><span>{product.brand}</span></td>
@@ -311,10 +344,21 @@ function ProductsTab() {
                       </div>
                     </td>
                     <td>
-                      <button type="button" className="btn btn-outline btn-sm" onClick={() => archiveProduct(productId)}>
-                        <i className="fas fa-eye-slash" />
-                        <span>Hide</span>
-                      </button>
+                      {productStatus === 'ARCHIVED' ? (
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => restoreProduct(productId)}>
+                          <i className="fas fa-eye" />
+                          <span>Restore</span>
+                        </button>
+                      ) : productStatus === 'CATEGORY_HIDDEN' ? (
+                        <span className="manager-status-hint" title="Restore the category to bring this product back">
+                          <i className="fas fa-circle-info" /> Category hidden
+                        </span>
+                      ) : (
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => archiveProduct(productId)}>
+                          <i className="fas fa-eye-slash" />
+                          <span>Hide</span>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
