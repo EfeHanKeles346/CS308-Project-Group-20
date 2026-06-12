@@ -427,6 +427,12 @@ export async function decideProductManagerComment(productId, commentId, status) 
   if (!result.success) return result;
 
   return { success: true, comment: result.data };
+=======
+  return {
+    success: true,
+    order: result.data,
+  };
+>>>>>>> Stashed changes
 }
 
 export async function fetchProductComments(productId) {
